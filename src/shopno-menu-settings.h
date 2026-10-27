@@ -22,6 +22,11 @@ G_BEGIN_DECLS
 #define SHOPNO_MENU_DEFAULT_ICON "start-here"
 #define SHOPNO_MENU_MAX_RECENT   6
 
+/* Values of the view-mode property, the layout of the All apps section */
+#define SHOPNO_MENU_VIEW_CATEGORY "category"
+#define SHOPNO_MENU_VIEW_GRID     "grid"
+#define SHOPNO_MENU_VIEW_LIST     "list"
+
 #define SHOPNO_TYPE_MENU_SETTINGS (shopno_menu_settings_get_type ())
 G_DECLARE_FINAL_TYPE (ShopnoMenuSettings, shopno_menu_settings, SHOPNO, MENU_SETTINGS, GObject)
 
@@ -50,6 +55,7 @@ void                 shopno_menu_settings_remove_recent (ShopnoMenuSettings  *se
 gboolean             shopno_menu_settings_get_show_recent (ShopnoMenuSettings *settings);
 gboolean             shopno_menu_settings_get_enable_blur (ShopnoMenuSettings *settings);
 const gchar         *shopno_menu_settings_get_button_icon (ShopnoMenuSettings *settings);
+const gchar         *shopno_menu_settings_get_view_mode   (ShopnoMenuSettings *settings);
 
 G_END_DECLS
 

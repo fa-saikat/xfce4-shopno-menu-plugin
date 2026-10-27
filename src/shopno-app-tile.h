@@ -25,6 +25,7 @@ typedef enum
 {
   SHOPNO_APP_TILE_GRID, /* icon above a one-line name */
   SHOPNO_APP_TILE_LIST, /* icon beside the name and description */
+  SHOPNO_APP_TILE_ROW,  /* small icon beside the name */
 } ShopnoAppTileLayout;
 
 GtkWidget      *shopno_app_icon_new      (const gchar         *icon_name,

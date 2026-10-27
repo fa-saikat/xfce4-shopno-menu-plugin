@@ -268,6 +268,34 @@ shopno_app_model_get_categories (ShopnoAppModel *model)
 
 
 
+/**
+ * shopno_app_model_get_all:
+ *
+ * Returns: (transfer container) (element-type GarconMenuItem): every app,
+ * sorted by name.
+ **/
+GPtrArray *
+shopno_app_model_get_all (ShopnoAppModel *model)
+{
+  GPtrArray      *items;
+  GHashTableIter  iter;
+  gpointer        item;
+
+  g_return_val_if_fail (SHOPNO_IS_APP_MODEL (model), NULL);
+
+  items = g_ptr_array_new_full (g_hash_table_size (model->items), g_object_unref);
+
+  g_hash_table_iter_init (&iter, model->items);
+  while (g_hash_table_iter_next (&iter, NULL, &item))
+    g_ptr_array_add (items, g_object_ref (item));
+
+  g_ptr_array_sort (items, shopno_app_model_compare_items);
+
+  return items;
+}
+
+
+
 GarconMenuItem *
 shopno_app_model_lookup (ShopnoAppModel *model,
                          const gchar    *desktop_id)

@@ -58,6 +58,8 @@ struct _ShopnoMenuWindow
   ShopnoAppModel     *model;
   guint               rebuild_id;
   gboolean            home_dirty;
+  gboolean            all_dirty;
+  GSimpleAction      *view_action;
 
   GtkWidget          *frame;
   GtkWidget          *search_entry;
@@ -69,7 +71,10 @@ struct _ShopnoMenuWindow
   GtkWidget          *pinned_empty;
   GtkWidget          *recent_title;
   GtkWidget          *recent_grid;
+  GtkWidget          *view_button;
+  GtkWidget          *view_label;
   GtkWidget          *category_grid;
+  GtkWidget          *all_apps;
 
   GtkWidget          *search_scroll;
   GtkWidget          *search_list;
@@ -320,12 +325,26 @@ shopno_menu_window_action_remove_recent (GSimpleAction *action,
 
 
 
+static void
+shopno_menu_window_action_view_mode (GSimpleAction *action,
+                                     GVariant      *value,
+                                     gpointer       data)
+{
+  ShopnoMenuWindow *self = SHOPNO_MENU_WINDOW (data);
+
+  g_object_set (self->settings, "view-mode", g_variant_get_string (value, NULL), NULL);
+}
+
+
+
 static const GActionEntry app_actions[] =
 {
   { .name = "pin", .activate = shopno_menu_window_action_pin, .parameter_type = "s" },
   { .name = "unpin", .activate = shopno_menu_window_action_unpin, .parameter_type = "s" },
   { .name = "move-to-front", .activate = shopno_menu_window_action_move_to_front, .parameter_type = "s" },
   { .name = "remove-recent", .activate = shopno_menu_window_action_remove_recent, .parameter_type = "s" },
+  { .name = "view-mode", .parameter_type = "s", .state = "'category'",
+    .change_state = shopno_menu_window_action_view_mode },
 };
 
 
@@ -471,9 +490,11 @@ shopno_menu_window_grid_new (ShopnoMenuWindow *self,
 
 
 static GtkWidget *
-shopno_menu_window_app_grid_new (ShopnoMenuWindow *self)
+shopno_menu_window_app_grid_new (ShopnoMenuWindow *self,
+                                 guint             columns,
+                                 const gchar      *style_class)
 {
-  GtkWidget *grid = shopno_menu_window_grid_new (self, GRID_COLUMNS, "shopno-app-grid");
+  GtkWidget *grid = shopno_menu_window_grid_new (self, columns, style_class);
 
   g_signal_connect (grid, "child-activated",
                     G_CALLBACK (shopno_menu_window_grid_child_activated), self);
@@ -533,10 +554,120 @@ shopno_menu_window_fill_grid (ShopnoMenuWindow    *self,
 
 
 
+/* The letter an app is listed under in the Grid and List views: the first
+ * character of its name without accents, or # for digits and symbols */
+static gchar *
+shopno_menu_window_get_letter (const gchar *name)
+{
+  gunichar c = name != NULL ? g_utf8_get_char_validated (name, -1) : 0;
+  gunichar base[G_UNICHAR_MAX_DECOMPOSITION_LENGTH];
+  gchar    letter[8];
+
+  if (c == 0 || c == (gunichar) -1 || c == (gunichar) -2)
+    return g_strdup ("#");
+
+  if (g_unichar_fully_decompose (c, FALSE, base, G_N_ELEMENTS (base)) > 0)
+    c = base[0];
+
+  if (!g_unichar_isalpha (c))
+    return g_strdup ("#");
+
+  letter[g_unichar_to_utf8 (g_unichar_toupper (c), letter)] = '\0';
+
+  return g_strdup (letter);
+}
+
+
+
+static void
+shopno_menu_window_fill_categories (ShopnoMenuWindow *self)
+{
+  GPtrArray *categories = shopno_app_model_get_categories (self->model);
+
+  for (guint i = 0; i < categories->len; i++)
+    {
+      ShopnoAppCategory *category = g_ptr_array_index (categories, i);
+      GtkWidget         *card = shopno_category_card_new (category);
+
+      g_object_set_data (G_OBJECT (card), CATEGORY_KEY, category);
+      gtk_container_add (GTK_CONTAINER (self->category_grid), card);
+    }
+}
+
+
+
+static void
+shopno_menu_window_fill_letters (ShopnoMenuWindow *self,
+                                 gboolean          as_list)
+{
+  GPtrArray *items = shopno_app_model_get_all (self->model);
+  GtkWidget *grid = NULL;
+  gchar     *letter = NULL;
+
+  for (guint i = 0; i < items->len; i++)
+    {
+      GarconMenuItem *item = g_ptr_array_index (items, i);
+      gchar          *item_letter = shopno_menu_window_get_letter (garcon_menu_item_get_name (item));
+      GtkWidget      *title;
+
+      if (grid == NULL || g_strcmp0 (letter, item_letter) != 0)
+        {
+          title = shopno_menu_window_title_new (item_letter);
+          gtk_style_context_add_class (gtk_widget_get_style_context (title), "shopno-menu-letter");
+          gtk_box_pack_start (GTK_BOX (self->all_apps), title, FALSE, FALSE, 0);
+
+          if (as_list)
+            grid = shopno_menu_window_app_grid_new (self, 1, "shopno-app-list");
+          else
+            grid = shopno_menu_window_app_grid_new (self, GRID_COLUMNS, "shopno-app-grid");
+          gtk_box_pack_start (GTK_BOX (self->all_apps), grid, FALSE, FALSE, 0);
+
+          g_free (letter);
+          letter = item_letter;
+        }
+      else
+        {
+          g_free (item_letter);
+        }
+
+      gtk_container_add (GTK_CONTAINER (grid),
+                         shopno_app_tile_new (item, as_list ? SHOPNO_APP_TILE_ROW : SHOPNO_APP_TILE_GRID));
+    }
+
+  g_free (letter);
+  g_ptr_array_unref (items);
+
+  gtk_widget_show_all (self->all_apps);
+}
+
+
+
+/* Only rebuilt when the apps or the view change, not on every pin */
+static void
+shopno_menu_window_rebuild_all (ShopnoMenuWindow *self)
+{
+  const gchar *mode = shopno_menu_settings_get_view_mode (self->settings);
+  gboolean     by_category = g_strcmp0 (mode, SHOPNO_MENU_VIEW_CATEGORY) == 0;
+
+  shopno_menu_window_clear (self->category_grid);
+  shopno_menu_window_clear (self->all_apps);
+
+  if (by_category)
+    shopno_menu_window_fill_categories (self);
+  else
+    shopno_menu_window_fill_letters (self, g_strcmp0 (mode, SHOPNO_MENU_VIEW_LIST) == 0);
+
+  gtk_widget_set_visible (self->category_grid, by_category);
+  gtk_widget_set_visible (self->all_apps, !by_category);
+
+  self->all_dirty = FALSE;
+}
+
+
+
 static void
 shopno_menu_window_rebuild_home (ShopnoMenuWindow *self)
 {
-  GPtrArray *categories;
   gboolean   show_recent;
   guint      n;
 
@@ -561,16 +692,8 @@ shopno_menu_window_rebuild_home (ShopnoMenuWindow *self)
   gtk_widget_set_visible (self->recent_title, show_recent);
   gtk_widget_set_visible (self->recent_grid, show_recent);
 
-  shopno_menu_window_clear (self->category_grid);
-  categories = shopno_app_model_get_categories (self->model);
-  for (guint i = 0; i < categories->len; i++)
-    {
-      ShopnoAppCategory *category = g_ptr_array_index (categories, i);
-      GtkWidget         *card = shopno_category_card_new (category);
-
-      g_object_set_data (G_OBJECT (card), CATEGORY_KEY, category);
-      gtk_container_add (GTK_CONTAINER (self->category_grid), card);
-    }
+  if (self->all_dirty)
+    shopno_menu_window_rebuild_all (self);
 
   self->home_dirty = FALSE;
 }
@@ -610,6 +733,40 @@ shopno_menu_window_model_changed (ShopnoMenuWindow *self)
   if (g_strcmp0 (gtk_stack_get_visible_child_name (GTK_STACK (self->stack)), "category") == 0)
     gtk_stack_set_visible_child_name (GTK_STACK (self->stack), "home");
 
+  self->all_dirty = TRUE;
+  shopno_menu_window_queue_rebuild (self);
+}
+
+
+
+static void
+shopno_menu_window_update_view_mode (ShopnoMenuWindow *self)
+{
+  const gchar *mode = shopno_menu_settings_get_view_mode (self->settings);
+  const gchar *name;
+  gchar       *text;
+  GtkPopover  *popover;
+
+  if (g_strcmp0 (mode, SHOPNO_MENU_VIEW_GRID) == 0)
+    name = _("Grid");
+  else if (g_strcmp0 (mode, SHOPNO_MENU_VIEW_LIST) == 0)
+    name = _("List");
+  else
+    name = _("Category");
+
+  /* TRANSLATORS: the selected layout of the All apps section */
+  text = g_strdup_printf (_("View: %s"), name);
+  gtk_label_set_text (GTK_LABEL (self->view_label), text);
+  g_free (text);
+
+  g_simple_action_set_state (self->view_action, g_variant_new_string (mode));
+
+  /* GTK 3 keeps a popover open after a radio item is picked */
+  popover = gtk_menu_button_get_popover (GTK_MENU_BUTTON (self->view_button));
+  if (popover != NULL)
+    gtk_popover_popdown (popover);
+
+  self->all_dirty = TRUE;
   shopno_menu_window_queue_rebuild (self);
 }
 
@@ -737,6 +894,23 @@ shopno_menu_window_first_child (GtkWidget *container)
 
 
 
+static GtkWidget *
+shopno_menu_window_first_all_app (ShopnoMenuWindow *self)
+{
+  GList     *children = gtk_container_get_children (GTK_CONTAINER (self->all_apps));
+  GtkWidget *first = NULL;
+
+  for (GList *li = children; li != NULL && first == NULL; li = li->next)
+    if (GTK_IS_FLOW_BOX (li->data))
+      first = shopno_menu_window_first_child (li->data);
+
+  g_list_free (children);
+
+  return first;
+}
+
+
+
 static gboolean
 shopno_menu_window_search_key_press (GtkWidget        *entry,
                                      GdkEventKey      *event,
@@ -764,6 +938,8 @@ shopno_menu_window_search_key_press (GtkWidget        *entry,
         target = shopno_menu_window_first_child (self->pinned_grid);
       if (target == NULL)
         target = shopno_menu_window_first_child (self->category_grid);
+      if (target == NULL)
+        target = shopno_menu_window_first_all_app (self);
     }
 
   if (target == NULL)
@@ -1150,8 +1326,11 @@ shopno_menu_window_constructed (GObject *object)
                             G_CALLBACK (shopno_menu_window_queue_rebuild), self);
   g_signal_connect_swapped (self->settings, "notify::enable-blur",
                             G_CALLBACK (shopno_menu_window_update_blur), self);
+  g_signal_connect_swapped (self->settings, "notify::view-mode",
+                            G_CALLBACK (shopno_menu_window_update_view_mode), self);
 
   shopno_menu_window_update_blur (self);
+  shopno_menu_window_update_view_mode (self);
   shopno_menu_window_rebuild_home (self);
 }
 
@@ -1222,8 +1401,10 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
   GtkWidget          *page;
   GtkWidget          *box;
   GtkWidget          *button;
+  GMenu              *menu;
 
   self->grab_input = TRUE;
+  self->all_dirty = TRUE;
   self->model = shopno_app_model_new ();
   g_signal_connect_swapped (self->model, "changed",
                             G_CALLBACK (shopno_menu_window_model_changed), self);
@@ -1246,6 +1427,7 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
 
   group = g_simple_action_group_new ();
   g_action_map_add_action_entries (G_ACTION_MAP (group), app_actions, G_N_ELEMENTS (app_actions), self);
+  self->view_action = G_SIMPLE_ACTION (g_action_map_lookup_action (G_ACTION_MAP (group), "view-mode"));
   gtk_widget_insert_action_group (GTK_WIDGET (self), "app", G_ACTION_GROUP (group));
   g_object_unref (group);
 
@@ -1296,7 +1478,7 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
   gtk_stack_add_named (GTK_STACK (self->stack), self->home_scroll, "home");
 
   gtk_box_pack_start (GTK_BOX (page), shopno_menu_window_title_new (_("Pinned")), FALSE, FALSE, 0);
-  self->pinned_grid = shopno_menu_window_app_grid_new (self);
+  self->pinned_grid = shopno_menu_window_app_grid_new (self, GRID_COLUMNS, "shopno-app-grid");
   gtk_box_pack_start (GTK_BOX (page), self->pinned_grid, FALSE, FALSE, 0);
   self->pinned_empty = gtk_label_new (_("Right-click an app to pin it here."));
   gtk_style_context_add_class (gtk_widget_get_style_context (self->pinned_empty), "shopno-menu-empty");
@@ -1304,15 +1486,44 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
 
   self->recent_title = shopno_menu_window_title_new (_("Recent"));
   gtk_box_pack_start (GTK_BOX (page), self->recent_title, FALSE, FALSE, 0);
-  self->recent_grid = shopno_menu_window_app_grid_new (self);
+  self->recent_grid = shopno_menu_window_app_grid_new (self, GRID_COLUMNS, "shopno-app-grid");
   g_object_set_data (G_OBJECT (self->recent_grid), RECENT_KEY, GINT_TO_POINTER (TRUE));
   gtk_box_pack_start (GTK_BOX (page), self->recent_grid, FALSE, FALSE, 0);
 
-  gtk_box_pack_start (GTK_BOX (page), shopno_menu_window_title_new (_("All")), FALSE, FALSE, 0);
+  /* All apps, with the view switcher on the right of the title */
+  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_style_context_add_class (gtk_widget_get_style_context (box), "shopno-menu-all-header");
+  gtk_box_pack_start (GTK_BOX (page), box, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (box), shopno_menu_window_title_new (_("All")), TRUE, TRUE, 0);
+
+  button = self->view_button = gtk_menu_button_new ();
+  gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
+  gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
+  gtk_widget_set_tooltip_text (button, _("Change how all apps are shown"));
+  gtk_style_context_add_class (gtk_widget_get_style_context (button), "shopno-menu-view-button");
+  gtk_box_pack_end (GTK_BOX (box), button, FALSE, FALSE, 0);
+
+  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+  gtk_container_add (GTK_CONTAINER (button), box);
+  self->view_label = gtk_label_new (NULL);
+  gtk_box_pack_start (GTK_BOX (box), self->view_label, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (box), gtk_image_new_from_icon_name ("pan-down-symbolic", GTK_ICON_SIZE_MENU),
+                      FALSE, FALSE, 0);
+
+  menu = g_menu_new ();
+  g_menu_append (menu, _("Category"), "app.view-mode::" SHOPNO_MENU_VIEW_CATEGORY);
+  g_menu_append (menu, _("Grid"), "app.view-mode::" SHOPNO_MENU_VIEW_GRID);
+  g_menu_append (menu, _("List"), "app.view-mode::" SHOPNO_MENU_VIEW_LIST);
+  gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (button), G_MENU_MODEL (menu));
+  g_object_unref (menu);
+
   self->category_grid = shopno_menu_window_grid_new (self, CATEGORY_COLUMNS, "shopno-category-grid");
   g_signal_connect (self->category_grid, "child-activated",
                     G_CALLBACK (shopno_menu_window_category_activated), self);
   gtk_box_pack_start (GTK_BOX (page), self->category_grid, FALSE, FALSE, 0);
+
+  self->all_apps = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+  gtk_box_pack_start (GTK_BOX (page), self->all_apps, FALSE, FALSE, 0);
 
   /* Search results page */
   page = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
@@ -1351,7 +1562,7 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
   self->category_title = shopno_menu_window_title_new (NULL);
   gtk_box_pack_start (GTK_BOX (box), self->category_title, TRUE, TRUE, 0);
 
-  self->category_apps = shopno_menu_window_app_grid_new (self);
+  self->category_apps = shopno_menu_window_app_grid_new (self, GRID_COLUMNS, "shopno-app-grid");
   gtk_box_pack_start (GTK_BOX (page), self->category_apps, FALSE, FALSE, 0);
 
   gtk_box_pack_end (GTK_BOX (self->frame), shopno_menu_window_footer_new (self), FALSE, FALSE, 0);

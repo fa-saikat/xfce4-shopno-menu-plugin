@@ -27,6 +27,9 @@
  * cannot store empty arrays, and an empty pinned list must persist. */
 #define LIST_SEPARATOR ";"
 
+/* Space between the menu and the panel or the edges of the screen */
+#define POPUP_GAP 12
+
 typedef struct _ShopnoMenuPluginClass ShopnoMenuPluginClass;
 typedef struct _ShopnoMenuPlugin      ShopnoMenuPlugin;
 
@@ -148,6 +151,7 @@ shopno_menu_plugin_load_settings (ShopnoMenuPlugin *self)
   shopno_menu_plugin_bind (self, "show-recent", G_TYPE_BOOLEAN);
   shopno_menu_plugin_bind (self, "enable-blur", G_TYPE_BOOLEAN);
   shopno_menu_plugin_bind (self, "button-icon", G_TYPE_STRING);
+  shopno_menu_plugin_bind (self, "view-mode", G_TYPE_STRING);
 }
 
 
@@ -223,6 +227,58 @@ shopno_menu_plugin_create_window_idle (gpointer data)
 
 
 static void
+shopno_menu_plugin_add_gap (ShopnoMenuPlugin *self,
+                            gint             *x,
+                            gint             *y)
+{
+  GdkDisplay     *display = gtk_widget_get_display (self->button);
+  GdkMonitor     *monitor;
+  GdkRectangle    geometry;
+  GtkRequisition  size;
+  gboolean        horizontal = TRUE;
+
+  /* Move the menu away from the panel, on the side it opens towards */
+  switch (xfce_panel_plugin_arrow_type (XFCE_PANEL_PLUGIN (self)))
+    {
+    case GTK_ARROW_UP:
+      *y -= POPUP_GAP;
+      break;
+
+    case GTK_ARROW_DOWN:
+      *y += POPUP_GAP;
+      break;
+
+    case GTK_ARROW_LEFT:
+      *x -= POPUP_GAP;
+      horizontal = FALSE;
+      break;
+
+    case GTK_ARROW_RIGHT:
+      *x += POPUP_GAP;
+      horizontal = FALSE;
+      break;
+
+    default:
+      break;
+    }
+
+  /* and keep it clear of the screen edges along the panel */
+  monitor = gdk_display_get_monitor_at_window (display, gtk_widget_get_window (self->button));
+  if (monitor == NULL)
+    return;
+
+  gdk_monitor_get_geometry (monitor, &geometry);
+  gtk_widget_get_preferred_size (self->window, NULL, &size);
+
+  if (horizontal)
+    *x = MAX (geometry.x + POPUP_GAP, MIN (*x, geometry.x + geometry.width - size.width - POPUP_GAP));
+  else
+    *y = MAX (geometry.y + POPUP_GAP, MIN (*y, geometry.y + geometry.height - size.height - POPUP_GAP));
+}
+
+
+
+static void
 shopno_menu_plugin_popup (ShopnoMenuPlugin *self)
 {
   gint x, y;
@@ -235,6 +291,7 @@ shopno_menu_plugin_popup (ShopnoMenuPlugin *self)
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->button), TRUE);
 
   xfce_panel_plugin_position_widget (XFCE_PANEL_PLUGIN (self), self->window, self->button, &x, &y);
+  shopno_menu_plugin_add_gap (self, &x, &y);
   shopno_menu_window_popup (SHOPNO_MENU_WINDOW (self->window), x, y);
 }
 
