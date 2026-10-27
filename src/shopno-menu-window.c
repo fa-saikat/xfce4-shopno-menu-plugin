@@ -22,8 +22,8 @@
 #include "shopno-menu-window.h"
 #include "shopno-session.h"
 
-/* Size of the menu frame, matching the Windows 11 Start menu at 100% scale */
-#define MENU_WIDTH  640
+/* Size of the menu at 100% scale */
+#define MENU_WIDTH  720
 #define MENU_HEIGHT 720
 
 #define GRID_COLUMNS       6
@@ -148,8 +148,8 @@ shopno_menu_window_update_blur (ShopnoMenuWindow *self)
   GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (self));
   gboolean         blur = shopno_menu_settings_get_enable_blur (self->settings);
 
-  /* With blur on, picom draws the blur, shadow and rounded corners, so the
-   * frame fills the window. Otherwise the menu draws its own shadow. */
+  /* With blur on, picom draws the blur, shadow and rounded corners.
+   * Otherwise the window manager's compositor draws the shadow. */
   gtk_window_set_role (GTK_WINDOW (self), blur ? ROLE_BLUR : ROLE_PLAIN);
 
   if (blur)
@@ -1218,7 +1218,7 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
   GtkWindow          *window = GTK_WINDOW (self);
   GSimpleActionGroup *group;
   GtkWidget          *overlay;
-  GtkWidget          *content;
+  GtkWidget          *header;
   GtkWidget          *page;
   GtkWidget          *box;
   GtkWidget          *button;
@@ -1237,7 +1237,8 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
   gtk_window_set_skip_pager_hint (window, TRUE);
   gtk_window_set_keep_above (window, TRUE);
   gtk_window_stick (window);
-  gtk_window_set_type_hint (window, GDK_WINDOW_TYPE_HINT_POPUP_MENU);
+  /* Same type as Whisker Menu, which xfwm4 gives a regular menu shadow */
+  gtk_window_set_type_hint (window, GDK_WINDOW_TYPE_HINT_MENU);
   gtk_widget_add_events (GTK_WIDGET (self), GDK_BUTTON_PRESS_MASK);
   gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (self)), "shopno-menu-window");
 
@@ -1253,14 +1254,15 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
   gtk_style_context_add_class (gtk_widget_get_style_context (self->frame), "shopno-menu-frame");
   gtk_container_add (GTK_CONTAINER (self), self->frame);
 
-  content = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-  gtk_style_context_add_class (gtk_widget_get_style_context (content), "shopno-menu-content");
-  gtk_box_pack_start (GTK_BOX (self->frame), content, TRUE, TRUE, 0);
+  /* Search box, in a header band that mirrors the footer. GTK 3 hides an
+   * entry's placeholder while it has focus, and the menu always focuses
+   * it, so draw our own placeholder. */
+  header = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+  gtk_style_context_add_class (gtk_widget_get_style_context (header), "shopno-menu-header");
+  gtk_box_pack_start (GTK_BOX (self->frame), header, FALSE, FALSE, 0);
 
-  /* Search box. GTK 3 hides an entry's placeholder while it has focus,
-   * and the menu always focuses it, so draw our own placeholder. */
   overlay = gtk_overlay_new ();
-  gtk_box_pack_start (GTK_BOX (content), overlay, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (header), overlay, FALSE, FALSE, 0);
 
   self->search_entry = gtk_search_entry_new ();
   gtk_style_context_add_class (gtk_widget_get_style_context (self->search_entry), "shopno-menu-search");
@@ -1285,7 +1287,7 @@ shopno_menu_window_init (ShopnoMenuWindow *self)
   self->stack = gtk_stack_new ();
   gtk_stack_set_transition_type (GTK_STACK (self->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
   gtk_stack_set_transition_duration (GTK_STACK (self->stack), 120);
-  gtk_box_pack_start (GTK_BOX (content), self->stack, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (self->frame), self->stack, TRUE, TRUE, 0);
 
   /* Home page: pinned, recent, and all apps by category */
   page = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);

@@ -2,8 +2,11 @@
  * Shopno Menu default style.
  *
  * Colors are taken from the active GTK theme, so the menu follows light
- * and dark themes automatically. Only geometry (spacing, radius, shadow)
- * is fixed here. Users can override any rule from ~/.config/gtk-3.0/gtk.css.
+ * and dark themes automatically. Only geometry (spacing, radius) is fixed
+ * here. Users can override any rule from ~/.config/gtk-3.0/gtk.css.
+ *
+ * The menu does not draw its own shadow: the window manager's compositor
+ * (or picom, with blur on) draws it around the window.
  */
 
 window.shopno-menu-window,
@@ -14,43 +17,54 @@ window.shopno-menu-window.background {
 /* Frame */
 
 .shopno-menu-frame {
-  margin: 12px;
-  border-radius: 8px;
-  border: 1px solid alpha(@theme_fg_color, 0.08);
+  border-radius: 3px;
+  border: 1px solid alpha(@theme_fg_color, 0.1);
   background-color: @theme_bg_color;
-  box-shadow: 0 4px 16px alpha(black, 0.28);
 }
 
 window.composited .shopno-menu-frame {
-  background-color: alpha(@theme_bg_color, 0.94);
+  background-color: alpha(@theme_bg_color, 0.96);
 }
 
-/* picom draws the blur, rounded corners and shadow; the frame fills the
- * window so the blurred area matches it exactly */
 window.composited.blur .shopno-menu-frame {
-  margin: 0;
-  border-radius: 8px;
-  box-shadow: none;
   background-color: alpha(@theme_bg_color, 0.78);
 }
 
 /* Without a compositor there is no transparency, so draw a plain box */
 window:not(.composited) .shopno-menu-frame {
-  margin: 0;
   border-radius: 0;
-  box-shadow: none;
 }
 
-.shopno-menu-content {
-  padding: 32px 32px 0 32px;
+/* Header and footer bands */
+
+.shopno-menu-header,
+.shopno-menu-footer {
+  background-color: alpha(@theme_fg_color, 0.03);
+}
+
+.shopno-menu-header {
+  padding: 20px 32px;
+  border-bottom: 1px solid alpha(@theme_fg_color, 0.08);
+  border-radius: 3px 3px 0 0;
+}
+
+.shopno-menu-footer {
+  padding: 12px 52px;
+  border-top: 1px solid alpha(@theme_fg_color, 0.08);
+  border-radius: 0 0 3px 3px;
+}
+
+window:not(.composited) .shopno-menu-header,
+window:not(.composited) .shopno-menu-footer {
+  border-radius: 0;
 }
 
 /* Search */
 
 .shopno-menu-search {
-  min-height: 36px;
+  min-height: 34px;
   padding: 0 12px;
-  border-radius: 18px;
+  border-radius: 3px;
 }
 
 .shopno-menu-search-placeholder {
@@ -61,11 +75,11 @@ window:not(.composited) .shopno-menu-frame {
 /* Pages */
 
 .shopno-menu-page {
-  padding: 4px 0 24px 0;
+  padding: 4px 32px 24px 32px;
 }
 
 .shopno-menu-section-title {
-  margin: 24px 8px 8px 8px;
+  margin: 20px 8px 8px 8px;
   font-weight: bold;
 }
 
@@ -82,13 +96,42 @@ window:not(.composited) .shopno-menu-frame {
   color: alpha(@theme_fg_color, 0.6);
 }
 
+/* Scrollbar: thin at all times, including while hovered or dragged */
+
+.shopno-menu-frame scrollbar,
+.shopno-menu-frame scrollbar.overlay-indicator,
+.shopno-menu-frame scrollbar trough {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.shopno-menu-frame scrollbar.vertical {
+  margin: 4px 3px;
+}
+
+.shopno-menu-frame scrollbar slider,
+.shopno-menu-frame scrollbar.overlay-indicator:not(.dragging):not(.hovering) slider {
+  min-width: 4px;
+  min-height: 40px;
+  margin: 0;
+  border: none;
+  border-radius: 2px;
+  background-color: alpha(@theme_fg_color, 0.22);
+}
+
+.shopno-menu-frame scrollbar slider:hover,
+.shopno-menu-frame scrollbar slider:active {
+  background-color: alpha(@theme_fg_color, 0.38);
+}
+
 /* App and category tiles */
 
 .shopno-app-grid flowboxchild,
 .shopno-category-grid flowboxchild,
 .shopno-search-list row {
   padding: 0;
-  border-radius: 6px;
+  border-radius: 3px;
   outline-offset: -2px;
 }
 
@@ -134,12 +177,12 @@ window:not(.composited) .shopno-menu-frame {
 }
 
 .shopno-category-card {
-  padding: 6px 6px 10px 6px;
+  padding: 8px 8px 12px 8px;
 }
 
 .shopno-category-preview {
-  padding: 16px 20px;
-  border-radius: 8px;
+  padding: 22px 28px;
+  border-radius: 3px;
   background-color: alpha(@theme_fg_color, 0.04);
   border: 1px solid alpha(@theme_fg_color, 0.06);
 }
@@ -150,21 +193,10 @@ window:not(.composited) .shopno-menu-frame {
 
 /* Footer */
 
-.shopno-menu-footer {
-  padding: 12px 52px;
-  border-top: 1px solid alpha(@theme_fg_color, 0.08);
-  border-radius: 0 0 8px 8px;
-  background-color: alpha(@theme_fg_color, 0.03);
-}
-
-window:not(.composited) .shopno-menu-footer {
-  border-radius: 0;
-}
-
 .shopno-menu-footer button {
   min-height: 36px;
   padding: 2px 10px;
-  border-radius: 6px;
+  border-radius: 3px;
 }
 
 .shopno-menu-user {

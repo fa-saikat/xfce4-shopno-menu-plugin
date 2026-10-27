@@ -19,7 +19,7 @@
 #include "shopno-app-tile.h"
 
 #define TILE_ICON_SIZE          32
-#define CATEGORY_ICON_SIZE      24
+#define CATEGORY_ICON_SIZE      32
 #define CATEGORY_PREVIEW_ICONS  4
 #define FALLBACK_ICON           "application-x-executable"
 #define ITEM_KEY                "shopno-item"
@@ -187,8 +187,8 @@ shopno_category_card_new (ShopnoAppCategory *category)
 
   /* A 2x2 preview of the first apps, like the Windows 11 category view */
   preview = gtk_grid_new ();
-  gtk_grid_set_row_spacing (GTK_GRID (preview), 12);
-  gtk_grid_set_column_spacing (GTK_GRID (preview), 12);
+  gtk_grid_set_row_spacing (GTK_GRID (preview), 16);
+  gtk_grid_set_column_spacing (GTK_GRID (preview), 16);
   gtk_widget_set_halign (preview, GTK_ALIGN_CENTER);
   gtk_style_context_add_class (gtk_widget_get_style_context (preview), "shopno-category-preview");
   gtk_box_pack_start (GTK_BOX (card), preview, FALSE, FALSE, 0);
