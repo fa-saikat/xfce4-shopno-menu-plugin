@@ -16,20 +16,22 @@
 #define __SHOPNO_MENU_WINDOW_H__
 
 #include <gtk/gtk.h>
-#include <libxfce4panel/libxfce4panel.h>
+
+#include "shopno-menu-settings.h"
 
 G_BEGIN_DECLS
 
 #define SHOPNO_TYPE_MENU_WINDOW (shopno_menu_window_get_type ())
 G_DECLARE_FINAL_TYPE (ShopnoMenuWindow, shopno_menu_window, SHOPNO, MENU_WINDOW, GtkWindow)
 
-void       shopno_menu_window_register_type (XfcePanelTypeModule *type_module);
+GtkWidget *shopno_menu_window_new            (ShopnoMenuSettings *settings);
 
-GtkWidget *shopno_menu_window_new           (void);
+void       shopno_menu_window_popup          (ShopnoMenuWindow   *window,
+                                              gint                x,
+                                              gint                y);
 
-void       shopno_menu_window_popup         (ShopnoMenuWindow    *window,
-                                             gint                 x,
-                                             gint                 y);
+void       shopno_menu_window_set_grab_input (ShopnoMenuWindow   *window,
+                                              gboolean            grab_input);
 
 G_END_DECLS
 

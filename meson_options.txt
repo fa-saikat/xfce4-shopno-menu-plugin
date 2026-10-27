@@ -1,0 +1,6 @@
+option(
+  'preview',
+  type: 'boolean',
+  value: false,
+  description: 'Build shopno-menu-preview, which opens the menu outside the panel for development',
+)

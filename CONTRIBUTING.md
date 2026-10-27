@@ -21,6 +21,21 @@ reinstall and restart the panel:
 meson compile -C build && sudo meson install -C build && xfce4-panel -r
 ```
 
+### Preview tool
+
+Reinstalling the plugin for every change is slow. For layout and style work,
+build the preview tool, which opens the menu in a normal window:
+
+```sh
+meson setup build -Dpreview=true
+meson compile -C build
+./build/tools/shopno-menu-preview --no-grab
+```
+
+`--no-grab` stops the menu from capturing all keyboard and mouse input.
+Other options: `--blur`, `--no-recent`, and `--pin ID` (repeatable) to pin
+desktop ids such as `firefox-esr.desktop`. Settings are not saved.
+
 ## Code style
 
 The code follows the Xfce C style:
@@ -28,7 +43,7 @@ The code follows the Xfce C style:
 - Two-space indentation, no tabs.
 - GNU brace placement, and a space before the opening parenthesis of a call.
 - Function return types on their own line.
-- Prefix public symbols with `shopno_menu_`, types with `ShopnoMenu`.
+- Prefix public symbols with `shopno_` and types with `Shopno`.
 - Build with `-Dwerror=true` before sending a pull request.
 
 When in doubt, match the code around your change.
