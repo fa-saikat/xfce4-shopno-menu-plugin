@@ -2,8 +2,11 @@
 
 ## Reporting bugs
 
-Open an issue using the bug report form. Include your distribution, Xfce
-version (`xfce4-panel --version`), and the steps to reproduce the problem.
+Open an issue with the form that fits: **Bug report** for things that do not
+work, **Visual or layout issue** for things that look wrong, **Feature
+request**, or **Packaging request or problem**. For questions, use
+[Discussions](https://github.com/fa-saikat/xfce4-shopno-menu-plugin/discussions)
+instead.
 
 To get debug output, run the panel from a terminal:
 
