@@ -21,10 +21,13 @@ libdir = prefix / get_option('libdir')
 datadir = prefix / get_option('datadir')
 localedir = prefix / get_option('localedir')
 
+glib = dependency('glib-2.0', version: '>= 2.70.0')
+gio_unix = dependency('gio-unix-2.0', version: '>= 2.70.0')
 gtk = dependency('gtk+-3.0', version: '>= 3.24.0')
 libxfce4panel = dependency('libxfce4panel-2.0', version: '>= 4.18.0')
 libxfce4ui = dependency('libxfce4ui-2', version: '>= 4.18.0')
 libxfce4util = dependency('libxfce4util-1.0', version: '>= 4.18.0')
+libxfconf = dependency('libxfconf-0', version: '>= 4.18.0')
 garcon = dependency('garcon-1', version: '>= 4.18.0')
 
 conf = configuration_data()
@@ -44,3 +47,7 @@ add_project_arguments(
 subdir('po')
 subdir('data')
 subdir('src')
+
+if get_option('preview')
+  subdir('tools')
+endif

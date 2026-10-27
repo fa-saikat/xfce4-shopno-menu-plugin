@@ -17,10 +17,15 @@
 #include <gtk/gtk.h>
 #include <libxfce4panel/libxfce4panel.h>
 #include <libxfce4util/libxfce4util.h>
+#include <xfconf/xfconf.h>
 
+#include "shopno-menu-dialog.h"
+#include "shopno-menu-settings.h"
 #include "shopno-menu-window.h"
 
-#define DEFAULT_ICON_NAME "start-here"
+/* Desktop ids contain no ';', so lists are stored as one string. Xfconf
+ * cannot store empty arrays, and an empty pinned list must persist. */
+#define LIST_SEPARATOR ";"
 
 typedef struct _ShopnoMenuPluginClass ShopnoMenuPluginClass;
 typedef struct _ShopnoMenuPlugin      ShopnoMenuPlugin;
@@ -32,17 +37,147 @@ struct _ShopnoMenuPluginClass
 
 struct _ShopnoMenuPlugin
 {
-  XfcePanelPlugin __parent__;
+  XfcePanelPlugin     __parent__;
 
-  GtkWidget *button;
-  GtkWidget *icon;
-  GtkWidget *window;
+  ShopnoMenuSettings *settings;
+  XfconfChannel      *channel;
+  guint               create_window_id;
+
+  GtkWidget          *button;
+  GtkWidget          *icon;
+  GtkWidget          *window;
 };
 
-/* Resident: the module registers GResources and a screen-wide CSS
- * provider, neither of which survive being unloaded */
-XFCE_PANEL_DEFINE_PLUGIN_RESIDENT (ShopnoMenuPlugin, shopno_menu_plugin,
-                                   shopno_menu_window_register_type)
+/* Resident: the module registers GResources, static GTypes, and a
+ * screen-wide CSS provider, none of which survive being unloaded */
+XFCE_PANEL_DEFINE_PLUGIN_RESIDENT (ShopnoMenuPlugin, shopno_menu_plugin)
+
+
+
+/*
+ * Settings storage
+ */
+
+static gchar *
+shopno_menu_plugin_property_path (ShopnoMenuPlugin *self,
+                                  const gchar      *name)
+{
+  return g_strconcat (xfce_panel_plugin_get_property_base (XFCE_PANEL_PLUGIN (self)), "/", name, NULL);
+}
+
+
+
+static void
+shopno_menu_plugin_load_list (ShopnoMenuPlugin *self,
+                              const gchar      *name)
+{
+  gchar  *path = shopno_menu_plugin_property_path (self, name);
+  gchar  *value;
+  gchar **list;
+
+  /* A missing property keeps the defaults from ShopnoMenuSettings */
+  if (xfconf_channel_has_property (self->channel, path))
+    {
+      value = xfconf_channel_get_string (self->channel, path, "");
+      list = g_strsplit (value, LIST_SEPARATOR, -1);
+      g_object_set (self->settings, name, list, NULL);
+      g_strfreev (list);
+      g_free (value);
+    }
+
+  g_free (path);
+}
+
+
+
+static void
+shopno_menu_plugin_save_list (ShopnoMenuSettings *settings,
+                              GParamSpec         *pspec,
+                              ShopnoMenuPlugin   *self)
+{
+  const gchar *name = g_param_spec_get_name (pspec);
+  gchar       *path = shopno_menu_plugin_property_path (self, name);
+  gchar      **list;
+  gchar       *value;
+
+  g_object_get (settings, name, &list, NULL);
+  value = g_strjoinv (LIST_SEPARATOR, list);
+  xfconf_channel_set_string (self->channel, path, value);
+
+  g_free (value);
+  g_strfreev (list);
+  g_free (path);
+}
+
+
+
+static void
+shopno_menu_plugin_bind (ShopnoMenuPlugin *self,
+                         const gchar      *name,
+                         GType             type)
+{
+  gchar *path = shopno_menu_plugin_property_path (self, name);
+
+  xfconf_g_property_bind (self->channel, path, type, self->settings, name);
+  g_free (path);
+}
+
+
+
+static void
+shopno_menu_plugin_load_settings (ShopnoMenuPlugin *self)
+{
+  GError *error = NULL;
+
+  if (!xfconf_init (&error))
+    {
+      g_warning ("Failed to connect to xfconf, settings will not be saved: %s", error->message);
+      g_error_free (error);
+      return;
+    }
+
+  self->channel = xfconf_channel_get ("xfce4-panel");
+
+  shopno_menu_plugin_load_list (self, "pinned");
+  shopno_menu_plugin_load_list (self, "recent");
+  g_signal_connect (self->settings, "notify::pinned",
+                    G_CALLBACK (shopno_menu_plugin_save_list), self);
+  g_signal_connect (self->settings, "notify::recent",
+                    G_CALLBACK (shopno_menu_plugin_save_list), self);
+
+  shopno_menu_plugin_bind (self, "show-recent", G_TYPE_BOOLEAN);
+  shopno_menu_plugin_bind (self, "enable-blur", G_TYPE_BOOLEAN);
+  shopno_menu_plugin_bind (self, "button-icon", G_TYPE_STRING);
+}
+
+
+
+/*
+ * Popup
+ */
+
+static void
+shopno_menu_plugin_update_icon (ShopnoMenuPlugin *self)
+{
+  const gchar *icon_name = shopno_menu_settings_get_button_icon (self->settings);
+
+  if (g_path_is_absolute (icon_name))
+    {
+      GFile *file = g_file_new_for_path (icon_name);
+      GIcon *icon = g_file_icon_new (file);
+
+      gtk_image_set_from_gicon (GTK_IMAGE (self->icon), icon, GTK_ICON_SIZE_BUTTON);
+      g_object_unref (icon);
+      g_object_unref (file);
+    }
+  else
+    {
+      gtk_image_set_from_icon_name (GTK_IMAGE (self->icon), icon_name, GTK_ICON_SIZE_BUTTON);
+    }
+
+  gtk_image_set_pixel_size (GTK_IMAGE (self->icon),
+                            xfce_panel_plugin_get_icon_size (XFCE_PANEL_PLUGIN (self)));
+}
 
 
 
@@ -56,16 +191,43 @@ shopno_menu_plugin_window_hidden (ShopnoMenuPlugin *self)
 
 
 static void
+shopno_menu_plugin_create_window (ShopnoMenuPlugin *self)
+{
+  if (self->create_window_id != 0)
+    {
+      g_source_remove (self->create_window_id);
+      self->create_window_id = 0;
+    }
+
+  if (self->window != NULL)
+    return;
+
+  self->window = shopno_menu_window_new (self->settings);
+  g_signal_connect_swapped (self->window, "hide",
+                            G_CALLBACK (shopno_menu_plugin_window_hidden), self);
+}
+
+
+
+static gboolean
+shopno_menu_plugin_create_window_idle (gpointer data)
+{
+  ShopnoMenuPlugin *self = data;
+
+  self->create_window_id = 0;
+  shopno_menu_plugin_create_window (self);
+
+  return G_SOURCE_REMOVE;
+}
+
+
+
+static void
 shopno_menu_plugin_popup (ShopnoMenuPlugin *self)
 {
   gint x, y;
 
-  if (self->window == NULL)
-    {
-      self->window = shopno_menu_window_new ();
-      g_signal_connect_swapped (self->window, "hide",
-                                G_CALLBACK (shopno_menu_plugin_window_hidden), self);
-    }
+  shopno_menu_plugin_create_window (self);
 
   gtk_window_set_screen (GTK_WINDOW (self->window), gtk_widget_get_screen (self->button));
 
@@ -107,13 +269,29 @@ shopno_menu_plugin_button_press_event (GtkWidget        *button,
 
 
 
+/*
+ * XfcePanelPlugin
+ */
+
 static void
 shopno_menu_plugin_construct (XfcePanelPlugin *plugin)
 {
+  ShopnoMenuPlugin *self = (ShopnoMenuPlugin *) plugin;
+
   xfce_textdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
 
   xfce_panel_plugin_set_small (plugin, TRUE);
+  xfce_panel_plugin_menu_show_configure (plugin);
   xfce_panel_plugin_menu_show_about (plugin);
+
+  shopno_menu_plugin_load_settings (self);
+  g_signal_connect_swapped (self->settings, "notify::button-icon",
+                            G_CALLBACK (shopno_menu_plugin_update_icon), self);
+  shopno_menu_plugin_update_icon (self);
+
+  /* Loading the applications menu takes a moment, so do it before the
+   * first click rather than on it */
+  self->create_window_id = g_idle_add (shopno_menu_plugin_create_window_idle, self);
 }
 
 
@@ -123,8 +301,19 @@ shopno_menu_plugin_free_data (XfcePanelPlugin *plugin)
 {
   ShopnoMenuPlugin *self = (ShopnoMenuPlugin *) plugin;
 
+  if (self->create_window_id != 0)
+    g_source_remove (self->create_window_id);
+
   if (self->window != NULL)
     gtk_widget_destroy (self->window);
+
+  g_signal_handlers_disconnect_by_data (self->settings, self);
+  if (self->channel != NULL)
+    {
+      xfconf_g_property_unbind_all (self->settings);
+      xfconf_shutdown ();
+    }
+  g_object_unref (self->settings);
 }
 
 
@@ -145,6 +334,14 @@ shopno_menu_plugin_size_changed (XfcePanelPlugin *plugin,
 
 
 static void
+shopno_menu_plugin_configure_plugin (XfcePanelPlugin *plugin)
+{
+  shopno_menu_dialog_show (plugin, ((ShopnoMenuPlugin *) plugin)->settings);
+}
+
+
+
+static void
 shopno_menu_plugin_about (XfcePanelPlugin *plugin)
 {
   const gchar *authors[] = { "FA Saikat", NULL };
@@ -156,7 +353,7 @@ shopno_menu_plugin_about (XfcePanelPlugin *plugin)
                          "website", "https://github.com/fa-saikat/xfce4-shopno-menu-plugin",
                          "license-type", GTK_LICENSE_GPL_2_0,
                          "authors", authors,
-                         "logo-icon-name", DEFAULT_ICON_NAME,
+                         "logo-icon-name", SHOPNO_MENU_DEFAULT_ICON,
                          NULL);
 }
 
@@ -186,6 +383,7 @@ shopno_menu_plugin_class_init (ShopnoMenuPluginClass *klass)
   plugin_class->construct = shopno_menu_plugin_construct;
   plugin_class->free_data = shopno_menu_plugin_free_data;
   plugin_class->size_changed = shopno_menu_plugin_size_changed;
+  plugin_class->configure_plugin = shopno_menu_plugin_configure_plugin;
   plugin_class->about = shopno_menu_plugin_about;
   plugin_class->remote_event = shopno_menu_plugin_remote_event;
 }
@@ -195,6 +393,8 @@ shopno_menu_plugin_class_init (ShopnoMenuPluginClass *klass)
 static void
 shopno_menu_plugin_init (ShopnoMenuPlugin *self)
 {
+  self->settings = shopno_menu_settings_new ();
+
   self->button = xfce_panel_create_toggle_button ();
   gtk_widget_set_tooltip_text (self->button, _("Start"));
   g_signal_connect (self->button, "button-press-event",
@@ -202,7 +402,7 @@ shopno_menu_plugin_init (ShopnoMenuPlugin *self)
   gtk_container_add (GTK_CONTAINER (self), self->button);
   xfce_panel_plugin_add_action_widget (XFCE_PANEL_PLUGIN (self), self->button);
 
-  self->icon = gtk_image_new_from_icon_name (DEFAULT_ICON_NAME, GTK_ICON_SIZE_BUTTON);
+  self->icon = gtk_image_new ();
   gtk_container_add (GTK_CONTAINER (self->button), self->icon);
 
   gtk_widget_show_all (self->button);

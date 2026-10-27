@@ -11,9 +11,10 @@ window.shopno-menu-window.background {
   background-color: transparent;
 }
 
+/* Frame */
+
 .shopno-menu-frame {
   margin: 12px;
-  padding: 32px 32px 0 32px;
   border-radius: 8px;
   border: 1px solid alpha(@theme_fg_color, 0.08);
   background-color: @theme_bg_color;
@@ -24,15 +25,148 @@ window.composited .shopno-menu-frame {
   background-color: alpha(@theme_bg_color, 0.94);
 }
 
-/* Without a compositor there is no transparency, so draw a plain box. */
+/* picom draws the blur, rounded corners and shadow; the frame fills the
+ * window so the blurred area matches it exactly */
+window.composited.blur .shopno-menu-frame {
+  margin: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  background-color: alpha(@theme_bg_color, 0.78);
+}
+
+/* Without a compositor there is no transparency, so draw a plain box */
 window:not(.composited) .shopno-menu-frame {
   margin: 0;
   border-radius: 0;
   box-shadow: none;
 }
 
+.shopno-menu-content {
+  padding: 32px 32px 0 32px;
+}
+
+/* Search */
+
 .shopno-menu-search {
   min-height: 36px;
   padding: 0 12px;
   border-radius: 18px;
+}
+
+.shopno-menu-search-placeholder {
+  margin-left: 40px;
+  color: alpha(@theme_fg_color, 0.55);
+}
+
+/* Pages */
+
+.shopno-menu-page {
+  padding: 4px 0 24px 0;
+}
+
+.shopno-menu-section-title {
+  margin: 24px 8px 8px 8px;
+  font-weight: bold;
+}
+
+.shopno-menu-section-header {
+  margin-top: 16px;
+}
+
+.shopno-menu-section-header .shopno-menu-section-title {
+  margin: 0;
+}
+
+.shopno-menu-empty {
+  margin: 16px 8px;
+  color: alpha(@theme_fg_color, 0.6);
+}
+
+/* App and category tiles */
+
+.shopno-app-grid flowboxchild,
+.shopno-category-grid flowboxchild,
+.shopno-search-list row {
+  padding: 0;
+  border-radius: 6px;
+  outline-offset: -2px;
+}
+
+.shopno-app-grid flowboxchild:hover,
+.shopno-category-grid flowboxchild:hover .shopno-category-preview,
+.shopno-search-list row:hover {
+  background-color: alpha(@theme_fg_color, 0.06);
+}
+
+.shopno-app-grid flowboxchild:active,
+.shopno-search-list row:active {
+  background-color: alpha(@theme_fg_color, 0.03);
+}
+
+.shopno-category-grid flowboxchild:hover {
+  background-color: transparent;
+}
+
+.shopno-app-tile.grid {
+  padding: 12px 4px 10px 4px;
+}
+
+.shopno-app-tile.list {
+  padding: 8px 12px;
+}
+
+.shopno-app-name {
+  font-size: 0.92em;
+}
+
+.shopno-app-comment {
+  font-size: 0.85em;
+  color: alpha(@theme_fg_color, 0.65);
+}
+
+.shopno-search-list {
+  background-color: transparent;
+}
+
+.shopno-search-list row:selected {
+  background-color: alpha(@theme_selected_bg_color, 0.18);
+  color: @theme_fg_color;
+}
+
+.shopno-category-card {
+  padding: 6px 6px 10px 6px;
+}
+
+.shopno-category-preview {
+  padding: 16px 20px;
+  border-radius: 8px;
+  background-color: alpha(@theme_fg_color, 0.04);
+  border: 1px solid alpha(@theme_fg_color, 0.06);
+}
+
+.shopno-category-name {
+  font-size: 0.92em;
+}
+
+/* Footer */
+
+.shopno-menu-footer {
+  padding: 12px 52px;
+  border-top: 1px solid alpha(@theme_fg_color, 0.08);
+  border-radius: 0 0 8px 8px;
+  background-color: alpha(@theme_fg_color, 0.03);
+}
+
+window:not(.composited) .shopno-menu-footer {
+  border-radius: 0;
+}
+
+.shopno-menu-footer button {
+  min-height: 36px;
+  padding: 2px 10px;
+  border-radius: 6px;
+}
+
+.shopno-menu-user {
+  padding-left: 8px;
 }
