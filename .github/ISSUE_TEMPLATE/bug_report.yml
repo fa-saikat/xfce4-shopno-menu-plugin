@@ -1,0 +1,48 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the menu
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution
+      placeholder: Debian 13
+    validations:
+      required: true
+  - type: input
+    id: xfce
+    attributes:
+      label: Xfce panel version
+      description: Output of `xfce4-panel --version`
+    validations:
+      required: true
+  - type: input
+    id: compositor
+    attributes:
+      label: Compositor
+      placeholder: xfwm4, picom, none
+  - type: input
+    id: themes
+    attributes:
+      label: GTK theme and icon theme
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Output of `PANEL_DEBUG=1 xfce4-panel`, or a screenshot for visual bugs.

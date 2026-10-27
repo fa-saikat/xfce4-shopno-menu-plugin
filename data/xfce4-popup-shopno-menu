@@ -1,0 +1,4 @@
+#!/bin/sh
+# Toggle the Shopno Menu. Bind this to the Super key in
+# Settings > Keyboard > Application Shortcuts.
+exec xfce4-panel --plugin-event=shopno-menu:popup:bool:false

@@ -1,0 +1,38 @@
+/*
+ * Shopno Menu default style.
+ *
+ * Colors are taken from the active GTK theme, so the menu follows light
+ * and dark themes automatically. Only geometry (spacing, radius, shadow)
+ * is fixed here. Users can override any rule from ~/.config/gtk-3.0/gtk.css.
+ */
+
+window.shopno-menu-window,
+window.shopno-menu-window.background {
+  background-color: transparent;
+}
+
+.shopno-menu-frame {
+  margin: 12px;
+  padding: 32px 32px 0 32px;
+  border-radius: 8px;
+  border: 1px solid alpha(@theme_fg_color, 0.08);
+  background-color: @theme_bg_color;
+  box-shadow: 0 4px 16px alpha(black, 0.28);
+}
+
+window.composited .shopno-menu-frame {
+  background-color: alpha(@theme_bg_color, 0.94);
+}
+
+/* Without a compositor there is no transparency, so draw a plain box. */
+window:not(.composited) .shopno-menu-frame {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.shopno-menu-search {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+}

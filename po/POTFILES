@@ -1,0 +1,3 @@
+data/shopno-menu.desktop.in
+src/shopno-menu-plugin.c
+src/shopno-menu-window.c

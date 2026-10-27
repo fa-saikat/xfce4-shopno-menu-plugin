@@ -1,0 +1,54 @@
+# Contributing to Shopno Menu
+
+## Reporting bugs
+
+Open an issue using the bug report form. Include your distribution, Xfce
+version (`xfce4-panel --version`), and the steps to reproduce the problem.
+
+To get debug output, run the panel from a terminal:
+
+```sh
+xfce4-panel -q
+PANEL_DEBUG=1 xfce4-panel
+```
+
+## Development setup
+
+Follow the build steps in the [README](README.md). After changing the code,
+reinstall and restart the panel:
+
+```sh
+meson compile -C build && sudo meson install -C build && xfce4-panel -r
+```
+
+## Code style
+
+The code follows the Xfce C style:
+
+- Two-space indentation, no tabs.
+- GNU brace placement, and a space before the opening parenthesis of a call.
+- Function return types on their own line.
+- Prefix public symbols with `shopno_menu_`, types with `ShopnoMenu`.
+- Build with `-Dwerror=true` before sending a pull request.
+
+When in doubt, match the code around your change.
+
+## Pull requests
+
+- Keep each pull request focused on one change.
+- Write commit messages in the imperative mood ("Add recent apps row"), with a
+  short summary line and an optional body explaining why.
+- Include a screenshot for visual changes.
+
+## Translations
+
+Translations use gettext. To add a language:
+
+1. Add the language code to `po/LINGUAS`.
+2. Run `meson compile -C build xfce4-shopno-menu-plugin-update-po`.
+3. Translate `po/<code>.po` and open a pull request.
+
+## License
+
+By contributing, you agree that your contributions are licensed under the
+GNU General Public License v2.0 or later.
