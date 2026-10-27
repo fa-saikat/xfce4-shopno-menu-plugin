@@ -16,7 +16,7 @@ on any distribution that ships Xfce 4.18 or newer.
   best match.
 - Pinned apps grid. Right-click any app to pin, unpin, or move it to the front.
 - Recently used apps row (can be turned off).
-- All apps, grouped by category, with the Windows 11 icon-preview cards.
+- All apps in three views, like Windows 11: by category with icon-preview cards, or in a grid or list grouped by first letter.
 - User avatar and name, with account settings, lock, switch user, and sign out.
 - Power button with sleep, shut down, and restart.
 - Follows your GTK theme (light or dark) and icon theme.

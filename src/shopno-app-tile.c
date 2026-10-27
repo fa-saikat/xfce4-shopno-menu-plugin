@@ -19,6 +19,7 @@
 #include "shopno-app-tile.h"
 
 #define TILE_ICON_SIZE          32
+#define ROW_ICON_SIZE           24
 #define CATEGORY_ICON_SIZE      32
 #define CATEGORY_PREVIEW_ICONS  4
 #define FALLBACK_ICON           "application-x-executable"
@@ -96,6 +97,7 @@ shopno_app_tile_new (GarconMenuItem      *item,
   GtkWidget   *tile;
   GtkWidget   *label;
   GtkWidget   *text_box;
+  gboolean     is_row = layout == SHOPNO_APP_TILE_ROW;
 
   g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), NULL);
 
@@ -133,9 +135,10 @@ shopno_app_tile_new (GarconMenuItem      *item,
   else
     {
       tile = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
-      gtk_style_context_add_class (gtk_widget_get_style_context (tile), "list");
+      gtk_style_context_add_class (gtk_widget_get_style_context (tile), is_row ? "row" : "list");
       gtk_box_pack_start (GTK_BOX (tile),
-                          shopno_app_icon_new (garcon_menu_item_get_icon_name (item), TILE_ICON_SIZE),
+                          shopno_app_icon_new (garcon_menu_item_get_icon_name (item),
+                                               is_row ? ROW_ICON_SIZE : TILE_ICON_SIZE),
                           FALSE, FALSE, 0);
 
       text_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
@@ -148,9 +151,16 @@ shopno_app_tile_new (GarconMenuItem      *item,
 
       if (comment != NULL && *comment != '\0')
         {
-          label = shopno_app_tile_label_new (comment, "shopno-app-comment");
-          gtk_label_set_xalign (GTK_LABEL (label), 0.0);
-          gtk_box_pack_start (GTK_BOX (text_box), label, FALSE, FALSE, 0);
+          if (is_row)
+            {
+              gtk_widget_set_tooltip_text (tile, comment);
+            }
+          else
+            {
+              label = shopno_app_tile_label_new (comment, "shopno-app-comment");
+              gtk_label_set_xalign (GTK_LABEL (label), 0.0);
+              gtk_box_pack_start (GTK_BOX (text_box), label, FALSE, FALSE, 0);
+            }
         }
     }
 
