@@ -40,10 +40,10 @@ picom. It follows the GTK and icon theme.
 
 %install
 %meson_install
-# No translations yet; keep the build working once they are added
-%find_lang %{name} || touch %{name}.lang
+# Add %%find_lang and "%%files -f %%{name}.lang" once po/LINGUAS lists a
+# language. Until then rpm rejects the empty list.
 
-%files -f %{name}.lang
+%files
 %license COPYING
 %doc README.md extras/picom/shopno-menu.conf
 %{_bindir}/xfce4-popup-shopno-menu
