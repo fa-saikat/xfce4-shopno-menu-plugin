@@ -156,21 +156,47 @@ window:not(.composited) .shopno-menu-footer {
   outline-offset: -2px;
 }
 
+/* Hover: Windows 11 lightens the item in both light and dark mode. The
+ * window gets the "dark" class when the theme background is dark. */
+
 .shopno-app-grid flowboxchild:hover,
 .shopno-app-list flowboxchild:hover,
+.shopno-app-grid flowboxchild:focus,
+.shopno-app-list flowboxchild:focus,
+.shopno-search-list row:hover,
 .shopno-category-grid flowboxchild:hover .shopno-category-preview,
-.shopno-search-list row:hover {
-  background-color: alpha(@theme_fg_color, 0.06);
+.shopno-category-grid flowboxchild:focus .shopno-category-preview {
+  background-color: alpha(white, 0.75);
+  box-shadow: inset 0 0 0 1px alpha(black, 0.06);
 }
 
-.shopno-app-grid flowboxchild:active,
-.shopno-app-list flowboxchild:active,
-.shopno-search-list row:active {
-  background-color: alpha(@theme_fg_color, 0.03);
+.shopno-app-grid flowboxchild:hover:active,
+.shopno-app-list flowboxchild:hover:active,
+.shopno-search-list row:hover:active {
+  background-color: alpha(white, 0.45);
 }
 
-.shopno-category-grid flowboxchild:hover {
+.dark .shopno-app-grid flowboxchild:hover,
+.dark .shopno-app-list flowboxchild:hover,
+.dark .shopno-app-grid flowboxchild:focus,
+.dark .shopno-app-list flowboxchild:focus,
+.dark .shopno-search-list row:hover,
+.dark .shopno-category-grid flowboxchild:hover .shopno-category-preview,
+.dark .shopno-category-grid flowboxchild:focus .shopno-category-preview {
+  background-color: alpha(white, 0.07);
+  box-shadow: inset 0 0 0 1px alpha(white, 0.05);
+}
+
+.dark .shopno-app-grid flowboxchild:hover:active,
+.dark .shopno-app-list flowboxchild:hover:active,
+.dark .shopno-search-list row:hover:active {
+  background-color: alpha(white, 0.04);
+}
+
+.shopno-category-grid flowboxchild:hover,
+.shopno-category-grid flowboxchild:focus {
   background-color: transparent;
+  box-shadow: none;
 }
 
 .shopno-app-tile.grid {
