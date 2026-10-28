@@ -1,0 +1,42 @@
+Source: xfce4-shopno-menu-plugin
+Section: xfce
+Priority: optional
+Maintainer: FA Saikat <fahimabrar.saikat@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ gettext,
+ libgarcon-1-dev,
+ libglib2.0-dev,
+ libgtk-3-dev,
+ libxfce4panel-2.0-dev,
+ libxfce4ui-2-dev,
+ libxfce4util-dev,
+ libxfconf-0-dev,
+ meson,
+ ninja-build,
+ pkgconf,
+Standards-Version: 4.7.0
+Homepage: https://github.com/fa-saikat/xfce4-shopno-menu-plugin
+Vcs-Browser: https://github.com/fa-saikat/xfce4-shopno-menu-plugin
+Vcs-Git: https://github.com/fa-saikat/xfce4-shopno-menu-plugin.git
+Rules-Requires-Root: no
+
+Package: xfce4-shopno-menu-plugin
+Architecture: any
+Depends:
+ xfce4-panel,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Recommends:
+ exo-utils,
+ xfce4-session,
+Suggests:
+ mugshot,
+ picom,
+Description: Windows 11 style Start menu for the Xfce panel
+ Shopno Menu is an application menu plugin for the Xfce panel, modelled on
+ the Windows 11 Start menu, without ads or a Recommended section.
+ .
+ It offers search, pinned and recently used apps, all apps by category or
+ in a grid or list, user and power controls, and optional background blur
+ with picom. It follows the GTK and icon theme.
