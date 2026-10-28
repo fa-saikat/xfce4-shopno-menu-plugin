@@ -392,15 +392,23 @@ shopno_menu_window_menu_append (GMenu       *menu,
 
 
 
+/* Opens the app menu for @child, pointing at (@x, @y) in @parent
+ * coordinates when opened with the mouse, or at the whole item when
+ * @parent is NULL */
 static void
 shopno_menu_window_show_app_menu (ShopnoMenuWindow *self,
                                   GtkWidget        *child,
-                                  gboolean          is_recent)
+                                  gboolean          is_recent,
+                                  GtkWidget        *parent,
+                                  gdouble           x,
+                                  gdouble           y)
 {
   GarconMenuItem      *item = shopno_app_tile_get_item (gtk_bin_get_child (GTK_BIN (child)));
   const gchar         *id;
   const gchar * const *pinned;
   GMenu               *menu;
+  GdkRectangle         rect;
+  gint                 child_x, child_y;
 
   if (item == NULL)
     return;
@@ -428,6 +436,19 @@ shopno_menu_window_show_app_menu (ShopnoMenuWindow *self,
 
   self->app_menu = gtk_popover_new_from_model (child, G_MENU_MODEL (menu));
   g_object_add_weak_pointer (G_OBJECT (self->app_menu), (gpointer *) &self->app_menu);
+
+  /* List rows span the whole menu, so pointing at the item would open the
+   * menu in the middle of the row, far from the pointer */
+  if (parent != NULL
+      && gtk_widget_translate_coordinates (parent, child, (gint) x, (gint) y, &child_x, &child_y))
+    {
+      rect.x = child_x;
+      rect.y = child_y;
+      rect.width = 1;
+      rect.height = 1;
+      gtk_popover_set_pointing_to (GTK_POPOVER (self->app_menu), &rect);
+    }
+
   gtk_popover_popup (GTK_POPOVER (self->app_menu));
 
   g_object_unref (menu);
@@ -450,7 +471,8 @@ shopno_menu_window_grid_button_press (GtkWidget        *grid,
     return GDK_EVENT_PROPAGATE;
 
   shopno_menu_window_show_app_menu (self, GTK_WIDGET (child),
-                                    g_object_get_data (G_OBJECT (grid), RECENT_KEY) != NULL);
+                                    g_object_get_data (G_OBJECT (grid), RECENT_KEY) != NULL,
+                                    grid, event->x, event->y);
 
   return GDK_EVENT_STOP;
 }
@@ -471,7 +493,7 @@ shopno_menu_window_list_button_press (GtkWidget        *list,
   if (row == NULL)
     return GDK_EVENT_PROPAGATE;
 
-  shopno_menu_window_show_app_menu (self, GTK_WIDGET (row), FALSE);
+  shopno_menu_window_show_app_menu (self, GTK_WIDGET (row), FALSE, list, event->x, event->y);
 
   return GDK_EVENT_STOP;
 }
@@ -1357,7 +1379,8 @@ shopno_menu_window_key_press_event (GtkWidget   *widget,
     {
       shopno_menu_window_show_app_menu (self, focus,
                                         g_object_get_data (G_OBJECT (gtk_widget_get_parent (focus)),
-                                                           RECENT_KEY) != NULL);
+                                                           RECENT_KEY) != NULL,
+                                        NULL, 0.0, 0.0);
       return GDK_EVENT_STOP;
     }
 
