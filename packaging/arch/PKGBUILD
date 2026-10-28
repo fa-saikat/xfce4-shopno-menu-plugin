@@ -13,7 +13,8 @@ optdepends=('exo: Edit Application in the right-click menu'
             'mugshot: account settings from the user menu'
             'picom: background blur')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-# Replaced with the real checksum by updpkgsums when published to the AUR
+# Built in CI from the checked-out tree; run updpkgsums before building
+# from the release tarball
 sha256sums=('SKIP')
 
 build() {
