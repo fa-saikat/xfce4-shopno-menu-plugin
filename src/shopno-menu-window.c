@@ -42,6 +42,7 @@
 
 #define CATEGORY_KEY "shopno-category"
 #define RECENT_KEY   "shopno-recent"
+#define HOVER_KEY    "shopno-hover"
 
 enum
 {
@@ -143,6 +144,33 @@ shopno_menu_window_update_visual (ShopnoMenuWindow *self)
     gtk_style_context_add_class (context, "composited");
   else
     gtk_style_context_remove_class (context, "composited");
+}
+
+
+
+/* Windows 11 lightens hovered items in both light and dark mode, which a
+ * single rule based on theme colors cannot do. Tell the CSS which one the
+ * theme is. */
+static void
+shopno_menu_window_style_updated (GtkWidget *widget)
+{
+  GtkStyleContext *context = gtk_widget_get_style_context (widget);
+  GdkRGBA          bg;
+  gboolean         dark = FALSE;
+
+  GTK_WIDGET_CLASS (shopno_menu_window_parent_class)->style_updated (widget);
+
+  if (gtk_style_context_lookup_color (context, "theme_bg_color", &bg))
+    dark = 0.2126 * bg.red + 0.7152 * bg.green + 0.0722 * bg.blue < 0.5;
+
+  /* Changing a class updates the style again, so only change it when needed */
+  if (dark != gtk_style_context_has_class (context, "dark"))
+    {
+      if (dark)
+        gtk_style_context_add_class (context, "dark");
+      else
+        gtk_style_context_remove_class (context, "dark");
+    }
 }
 
 
@@ -467,6 +495,81 @@ shopno_menu_window_title_new (const gchar *text)
 
 
 
+/*
+ * GtkFlowBox in GTK 3 never sets the prelight state on its children, so
+ * :hover rules on flowboxchild do not apply. Track the child under the
+ * pointer and set the state ourselves.
+ */
+
+static void
+shopno_menu_window_hover_slot_free (gpointer data)
+{
+  GtkWidget **slot = data;
+
+  if (*slot != NULL)
+    g_object_remove_weak_pointer (G_OBJECT (*slot), (gpointer *) slot);
+  g_free (slot);
+}
+
+
+
+static void
+shopno_menu_window_set_hover (GtkWidget *grid,
+                              GtkWidget *child)
+{
+  GtkWidget **slot = g_object_get_data (G_OBJECT (grid), HOVER_KEY);
+
+  if (slot == NULL)
+    {
+      slot = g_new0 (GtkWidget *, 1);
+      g_object_set_data_full (G_OBJECT (grid), HOVER_KEY, slot, shopno_menu_window_hover_slot_free);
+    }
+
+  if (*slot == child)
+    return;
+
+  if (*slot != NULL)
+    {
+      gtk_widget_unset_state_flags (*slot, GTK_STATE_FLAG_PRELIGHT);
+      g_object_remove_weak_pointer (G_OBJECT (*slot), (gpointer *) slot);
+    }
+
+  *slot = child;
+
+  if (child != NULL)
+    {
+      gtk_widget_set_state_flags (child, GTK_STATE_FLAG_PRELIGHT, FALSE);
+      g_object_add_weak_pointer (G_OBJECT (child), (gpointer *) slot);
+    }
+}
+
+
+
+static gboolean
+shopno_menu_window_grid_motion (GtkWidget      *grid,
+                                GdkEventMotion *event)
+{
+  GtkFlowBoxChild *child = gtk_flow_box_get_child_at_pos (GTK_FLOW_BOX (grid), event->x, event->y);
+
+  shopno_menu_window_set_hover (grid, GTK_WIDGET (child));
+
+  return GDK_EVENT_PROPAGATE;
+}
+
+
+
+static gboolean
+shopno_menu_window_grid_leave (GtkWidget        *grid,
+                               GdkEventCrossing *event)
+{
+  if (event->detail != GDK_NOTIFY_INFERIOR)
+    shopno_menu_window_set_hover (grid, NULL);
+
+  return GDK_EVENT_PROPAGATE;
+}
+
+
+
 static GtkWidget *
 shopno_menu_window_grid_new (ShopnoMenuWindow *self,
                              guint             columns,
@@ -483,6 +586,12 @@ shopno_menu_window_grid_new (ShopnoMenuWindow *self,
   gtk_flow_box_set_activate_on_single_click (GTK_FLOW_BOX (grid), TRUE);
   gtk_widget_set_valign (grid, GTK_ALIGN_START);
   gtk_style_context_add_class (gtk_widget_get_style_context (grid), style_class);
+
+  gtk_widget_add_events (grid, GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK);
+  g_signal_connect (grid, "motion-notify-event", G_CALLBACK (shopno_menu_window_grid_motion), NULL);
+  g_signal_connect (grid, "leave-notify-event", G_CALLBACK (shopno_menu_window_grid_leave), NULL);
+  /* No leave event arrives when the menu closes under the pointer */
+  g_signal_connect (grid, "unmap", G_CALLBACK (shopno_menu_window_set_hover), NULL);
 
   return grid;
 }
@@ -1381,6 +1490,7 @@ shopno_menu_window_class_init (ShopnoMenuWindowClass *klass)
   widget_class->button_press_event = shopno_menu_window_button_press_event;
   widget_class->key_press_event = shopno_menu_window_key_press_event;
   widget_class->focus_out_event = shopno_menu_window_focus_out_event;
+  widget_class->style_updated = shopno_menu_window_style_updated;
 
   properties[PROP_SETTINGS] =
     g_param_spec_object ("settings", NULL, NULL, SHOPNO_TYPE_MENU_SETTINGS,
