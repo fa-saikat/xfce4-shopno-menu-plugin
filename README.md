@@ -33,6 +33,27 @@ Session actions use the standard Xfce tools (`xflock4`,
 installed is hidden. Switch user needs `dm-tool` (LightDM), and account
 settings need `mugshot` or `users-admin`.
 
+## Installing
+
+Download the package for your distribution from the
+[latest release](https://github.com/fa-saikat/xfce4-shopno-menu-plugin/releases/latest),
+then install it:
+
+| Distribution             | File                         | Install with                                            |
+|--------------------------|------------------------------|---------------------------------------------------------|
+| Debian 13                | `*~debian13_amd64.deb`       | `sudo apt install ./xfce4-shopno-menu-plugin_*.deb`     |
+| Ubuntu 24.04, Mint 22    | `*~ubuntu24.04_amd64.deb`    | `sudo apt install ./xfce4-shopno-menu-plugin_*.deb`     |
+| Fedora                   | `*.fc*.x86_64.rpm`           | `sudo dnf install ./xfce4-shopno-menu-plugin-*.rpm`     |
+| Arch Linux               | `*.pkg.tar.zst`              | `sudo pacman -U xfce4-shopno-menu-plugin-*.pkg.tar.zst` |
+
+Each release also has a `SHA256SUMS` file to check the downloads with
+`sha256sum -c --ignore-missing SHA256SUMS`.
+
+Then restart the panel (`xfce4-panel -r`), right-click it, choose
+**Panel > Add New Items…**, and add **Shopno Menu**.
+
+For other distributions, build from source as described below.
+
 ## Building
 
 Dependencies:
