@@ -20,6 +20,8 @@ on any distribution that ships Xfce 4.18 or newer.
 - Recently used apps row (can be turned off).
 - All apps in three views, like Windows 11: by category with icon-preview
   cards, or in a grid or list grouped by first letter.
+- Xfce settings dialogs stay out of All apps but show up in search, like
+  settings pages in Windows 11 (can be turned off).
 - User avatar and name, with account settings, lock, switch user, and sign out.
 - Power button with sleep, shut down, and restart.
 - Follows your GTK theme (light or dark) and icon theme.

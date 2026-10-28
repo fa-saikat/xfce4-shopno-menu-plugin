@@ -37,6 +37,7 @@ enum
   PROP_ENABLE_BLUR,
   PROP_BUTTON_ICON,
   PROP_VIEW_MODE,
+  PROP_SHOW_SETTINGS_DIALOGS,
   N_PROPERTIES
 };
 
@@ -50,6 +51,7 @@ struct _ShopnoMenuSettings
   gboolean  enable_blur;
   gchar    *button_icon;
   gchar    *view_mode;
+  gboolean  show_settings_dialogs;
 };
 
 static GParamSpec *properties[N_PROPERTIES];
@@ -149,6 +151,10 @@ shopno_menu_settings_get_property (GObject    *object,
       g_value_set_string (value, self->view_mode);
       break;
 
+    case PROP_SHOW_SETTINGS_DIALOGS:
+      g_value_set_boolean (value, self->show_settings_dialogs);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -219,6 +225,15 @@ shopno_menu_settings_set_property (GObject      *object,
         }
       break;
 
+    case PROP_SHOW_SETTINGS_DIALOGS:
+      bool_value = g_value_get_boolean (value);
+      if (self->show_settings_dialogs != bool_value)
+        {
+          self->show_settings_dialogs = bool_value;
+          g_object_notify_by_pspec (object, pspec);
+        }
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -275,6 +290,10 @@ shopno_menu_settings_class_init (ShopnoMenuSettingsClass *klass)
     g_param_spec_string ("view-mode", NULL, NULL, SHOPNO_MENU_VIEW_CATEGORY,
                          G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_STATIC_STRINGS);
 
+  properties[PROP_SHOW_SETTINGS_DIALOGS] =
+    g_param_spec_boolean ("show-settings-dialogs", NULL, NULL, FALSE,
+                          G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_STATIC_STRINGS);
+
   g_object_class_install_properties (gobject_class, N_PROPERTIES, properties);
 }
 
@@ -289,6 +308,7 @@ shopno_menu_settings_init (ShopnoMenuSettings *self)
   self->enable_blur = FALSE;
   self->button_icon = g_strdup (SHOPNO_MENU_DEFAULT_ICON);
   self->view_mode = g_strdup (SHOPNO_MENU_VIEW_CATEGORY);
+  self->show_settings_dialogs = FALSE;
 }
 
 
@@ -486,4 +506,14 @@ shopno_menu_settings_get_view_mode (ShopnoMenuSettings *settings)
   g_return_val_if_fail (SHOPNO_IS_MENU_SETTINGS (settings), SHOPNO_MENU_VIEW_CATEGORY);
 
   return settings->view_mode;
+}
+
+
+
+gboolean
+shopno_menu_settings_get_show_settings_dialogs (ShopnoMenuSettings *settings)
+{
+  g_return_val_if_fail (SHOPNO_IS_MENU_SETTINGS (settings), FALSE);
+
+  return settings->show_settings_dialogs;
 }

@@ -1014,6 +1014,16 @@ shopno_menu_window_model_changed (ShopnoMenuWindow *self)
 
 
 static void
+shopno_menu_window_update_settings_dialogs (ShopnoMenuWindow *self)
+{
+  /* The model emits ::changed, which rebuilds All apps */
+  shopno_app_model_set_show_settings_dialogs (self->model,
+                                              shopno_menu_settings_get_show_settings_dialogs (self->settings));
+}
+
+
+
+static void
 shopno_menu_window_update_view_mode (ShopnoMenuWindow *self)
 {
   const gchar *mode = shopno_menu_settings_get_view_mode (self->settings);
@@ -1603,8 +1613,11 @@ shopno_menu_window_constructed (GObject *object)
                             G_CALLBACK (shopno_menu_window_update_blur), self);
   g_signal_connect_swapped (self->settings, "notify::view-mode",
                             G_CALLBACK (shopno_menu_window_update_view_mode), self);
+  g_signal_connect_swapped (self->settings, "notify::show-settings-dialogs",
+                            G_CALLBACK (shopno_menu_window_update_settings_dialogs), self);
 
   shopno_menu_window_update_blur (self);
+  shopno_menu_window_update_settings_dialogs (self);
   shopno_menu_window_update_view_mode (self);
   shopno_menu_window_rebuild_home (self);
 }

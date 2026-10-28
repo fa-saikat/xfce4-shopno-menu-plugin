@@ -56,6 +56,7 @@ gboolean             shopno_menu_settings_get_show_recent (ShopnoMenuSettings *s
 gboolean             shopno_menu_settings_get_enable_blur (ShopnoMenuSettings *settings);
 const gchar         *shopno_menu_settings_get_button_icon (ShopnoMenuSettings *settings);
 const gchar         *shopno_menu_settings_get_view_mode   (ShopnoMenuSettings *settings);
+gboolean             shopno_menu_settings_get_show_settings_dialogs (ShopnoMenuSettings *settings);
 
 G_END_DECLS
 

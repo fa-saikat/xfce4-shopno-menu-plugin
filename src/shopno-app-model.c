@@ -38,6 +38,7 @@ struct _ShopnoAppModel
   GPtrArray  *categories; /* ShopnoAppCategory */
   GHashTable *items;      /* desktop id -> GarconMenuItem */
   guint       reload_id;
+  gboolean    show_settings_dialogs;
 };
 
 typedef struct
@@ -77,6 +78,24 @@ shopno_app_model_compare_items (gconstpointer a,
 
 
 
+/* Settings dialogs are left out of All apps but stay searchable, like
+ * settings pages in Windows 11 */
+static gboolean
+shopno_app_model_is_browsable (ShopnoAppModel *self,
+                               GarconMenuItem *item)
+{
+  if (self->show_settings_dialogs)
+    return TRUE;
+
+  for (GList *li = garcon_menu_item_get_categories (item); li != NULL; li = li->next)
+    if (g_strcmp0 (li->data, "X-XFCE-SettingsDialog") == 0)
+      return FALSE;
+
+  return TRUE;
+}
+
+
+
 static void
 shopno_app_model_collect (ShopnoAppModel    *self,
                           GarconMenu        *menu,
@@ -97,7 +116,8 @@ shopno_app_model_collect (ShopnoAppModel    *self,
           if (id == NULL || garcon_menu_item_get_name (item) == NULL)
             continue;
 
-          g_ptr_array_add (category->items, g_object_ref (item));
+          if (shopno_app_model_is_browsable (self, item))
+            g_ptr_array_add (category->items, g_object_ref (item));
           if (!g_hash_table_contains (self->items, id))
             g_hash_table_insert (self->items, g_strdup (id), g_object_ref (item));
         }
@@ -271,8 +291,8 @@ shopno_app_model_get_categories (ShopnoAppModel *model)
 /**
  * shopno_app_model_get_all:
  *
- * Returns: (transfer container) (element-type GarconMenuItem): every app,
- * sorted by name.
+ * Returns: (transfer container) (element-type GarconMenuItem): every app
+ * shown in All apps, sorted by name.
  **/
 GPtrArray *
 shopno_app_model_get_all (ShopnoAppModel *model)
@@ -287,11 +307,34 @@ shopno_app_model_get_all (ShopnoAppModel *model)
 
   g_hash_table_iter_init (&iter, model->items);
   while (g_hash_table_iter_next (&iter, NULL, &item))
-    g_ptr_array_add (items, g_object_ref (item));
+    if (shopno_app_model_is_browsable (model, item))
+      g_ptr_array_add (items, g_object_ref (item));
 
   g_ptr_array_sort (items, shopno_app_model_compare_items);
 
   return items;
+}
+
+
+
+/**
+ * shopno_app_model_set_show_settings_dialogs:
+ *
+ * Whether settings dialogs are listed in the categories and
+ * shopno_app_model_get_all(). Search and lookup always include them.
+ **/
+void
+shopno_app_model_set_show_settings_dialogs (ShopnoAppModel *model,
+                                            gboolean        show)
+{
+  g_return_if_fail (SHOPNO_IS_APP_MODEL (model));
+
+  if (model->show_settings_dialogs == show)
+    return;
+
+  model->show_settings_dialogs = show;
+  shopno_app_model_load (model);
+  g_signal_emit (model, signals[CHANGED], 0);
 }
 
 
