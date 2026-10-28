@@ -41,8 +41,8 @@ then install it:
 
 | Distribution             | File                         | Install with                                            |
 |--------------------------|------------------------------|---------------------------------------------------------|
-| Debian 13                | `*~debian13_amd64.deb`       | `sudo apt install ./xfce4-shopno-menu-plugin_*.deb`     |
-| Ubuntu 24.04, Mint 22    | `*~ubuntu24.04_amd64.deb`    | `sudo apt install ./xfce4-shopno-menu-plugin_*.deb`     |
+| Debian 13                | `*.debian13_amd64.deb`       | `sudo apt install ./xfce4-shopno-menu-plugin_*.deb`     |
+| Ubuntu 24.04, Mint 22    | `*.ubuntu24.04_amd64.deb`    | `sudo apt install ./xfce4-shopno-menu-plugin_*.deb`     |
 | Fedora                   | `*.fc*.x86_64.rpm`           | `sudo dnf install ./xfce4-shopno-menu-plugin-*.rpm`     |
 | Arch Linux               | `*.pkg.tar.zst`              | `sudo pacman -U xfce4-shopno-menu-plugin-*.pkg.tar.zst` |
 

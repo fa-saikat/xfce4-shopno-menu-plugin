@@ -194,7 +194,15 @@ jobs:
 
       - name: Checksums
         working-directory: dist
-        run: sha256sum * > SHA256SUMS && cat SHA256SUMS
+        run: |
+          # GitHub replaces "~" in uploaded file names with ".", so rename
+          # first to keep SHA256SUMS matching the downloads
+          shopt -s nullglob
+          for file in *~*; do
+            mv "$file" "${file//\~/.}"
+          done
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
 
       - uses: softprops/action-gh-release@v2
         with:
