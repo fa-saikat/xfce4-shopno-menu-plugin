@@ -16,6 +16,7 @@
 #define __SHOPNO_APP_MODEL_H__
 
 #include <garcon/garcon.h>
+#include <gio/gdesktopappinfo.h>
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
@@ -42,7 +43,14 @@ GPtrArray      *shopno_app_model_search         (ShopnoAppModel  *model,
                                                  const gchar     *query,
                                                  guint            max_results);
 
+GDesktopAppInfo *shopno_app_get_info            (GarconMenuItem  *item);
+
 gboolean        shopno_app_launch               (GarconMenuItem  *item,
+                                                 GdkScreen       *screen,
+                                                 GError         **error);
+
+gboolean        shopno_app_launch_action        (GarconMenuItem  *item,
+                                                 const gchar     *action,
                                                  GdkScreen       *screen,
                                                  GError         **error);
 
