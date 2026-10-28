@@ -1,4 +1,5 @@
 data/shopno-menu.desktop.in
+src/shopno-app-actions.c
 src/shopno-app-model.c
 src/shopno-menu-dialog.c
 src/shopno-menu-plugin.c

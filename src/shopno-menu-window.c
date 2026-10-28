@@ -17,6 +17,7 @@
 #include <glib/gi18n-lib.h>
 #include <libxfce4ui/libxfce4ui.h>
 
+#include "shopno-app-actions.h"
 #include "shopno-app-model.h"
 #include "shopno-app-tile.h"
 #include "shopno-menu-window.h"
@@ -353,6 +354,105 @@ shopno_menu_window_action_remove_recent (GSimpleAction *action,
 
 
 
+typedef gboolean (*ShopnoAppActionFunc) (GarconMenuItem *item, GError **error);
+
+static void
+shopno_menu_window_run_app_action (ShopnoMenuWindow    *self,
+                                   GVariant            *parameter,
+                                   ShopnoAppActionFunc  func,
+                                   const gchar         *error_message)
+{
+  GarconMenuItem *item = shopno_app_model_lookup (self->model, g_variant_get_string (parameter, NULL));
+  GError         *error = NULL;
+
+  if (item == NULL)
+    return;
+
+  /* Close first, so the panel's and editor's dialogs are not hidden
+   * behind the menu */
+  g_object_ref (item);
+  gtk_widget_hide (GTK_WIDGET (self));
+
+  if (!func (item, &error))
+    {
+      xfce_dialog_show_error (NULL, error, error_message, garcon_menu_item_get_name (item));
+      g_error_free (error);
+    }
+
+  g_object_unref (item);
+}
+
+
+
+static void
+shopno_menu_window_action_add_to_desktop (GSimpleAction *action,
+                                          GVariant      *parameter,
+                                          gpointer       data)
+{
+  shopno_menu_window_run_app_action (SHOPNO_MENU_WINDOW (data), parameter, shopno_app_add_to_desktop,
+                                     _("Failed to add \"%s\" to the desktop"));
+}
+
+
+
+static void
+shopno_menu_window_action_add_to_panel (GSimpleAction *action,
+                                        GVariant      *parameter,
+                                        gpointer       data)
+{
+  shopno_menu_window_run_app_action (SHOPNO_MENU_WINDOW (data), parameter, shopno_app_add_to_panel,
+                                     _("Failed to add \"%s\" to the panel"));
+}
+
+
+
+static void
+shopno_menu_window_action_edit (GSimpleAction *action,
+                                GVariant      *parameter,
+                                gpointer       data)
+{
+  shopno_menu_window_run_app_action (SHOPNO_MENU_WINDOW (data), parameter, shopno_app_edit,
+                                     _("Failed to edit \"%s\""));
+}
+
+
+
+static void
+shopno_menu_window_action_launch_action (GSimpleAction *action,
+                                         GVariant      *parameter,
+                                         gpointer       data)
+{
+  ShopnoMenuWindow *self = SHOPNO_MENU_WINDOW (data);
+  GarconMenuItem   *item;
+  const gchar      *id;
+  const gchar      *app_action;
+  GError           *error = NULL;
+
+  g_variant_get (parameter, "(&s&s)", &id, &app_action);
+
+  item = shopno_app_model_lookup (self->model, id);
+  if (item == NULL)
+    return;
+
+  g_object_ref (item);
+  gtk_widget_hide (GTK_WIDGET (self));
+
+  if (shopno_app_launch_action (item, app_action, gtk_widget_get_screen (GTK_WIDGET (self)), &error))
+    {
+      shopno_menu_settings_add_recent (self->settings, id);
+    }
+  else
+    {
+      xfce_dialog_show_error (NULL, error, _("Failed to launch \"%s\""),
+                              garcon_menu_item_get_name (item));
+      g_error_free (error);
+    }
+
+  g_object_unref (item);
+}
+
+
+
 static void
 shopno_menu_window_action_view_mode (GSimpleAction *action,
                                      GVariant      *value,
@@ -371,6 +471,10 @@ static const GActionEntry app_actions[] =
   { .name = "unpin", .activate = shopno_menu_window_action_unpin, .parameter_type = "s" },
   { .name = "move-to-front", .activate = shopno_menu_window_action_move_to_front, .parameter_type = "s" },
   { .name = "remove-recent", .activate = shopno_menu_window_action_remove_recent, .parameter_type = "s" },
+  { .name = "add-to-desktop", .activate = shopno_menu_window_action_add_to_desktop, .parameter_type = "s" },
+  { .name = "add-to-panel", .activate = shopno_menu_window_action_add_to_panel, .parameter_type = "s" },
+  { .name = "edit", .activate = shopno_menu_window_action_edit, .parameter_type = "s" },
+  { .name = "launch-action", .activate = shopno_menu_window_action_launch_action, .parameter_type = "(ss)" },
   { .name = "view-mode", .parameter_type = "s", .state = "'category'",
     .change_state = shopno_menu_window_action_view_mode },
 };
@@ -407,6 +511,8 @@ shopno_menu_window_show_app_menu (ShopnoMenuWindow *self,
   const gchar         *id;
   const gchar * const *pinned;
   GMenu               *menu;
+  GMenu               *section;
+  GDesktopAppInfo     *info;
   GdkRectangle         rect;
   gint                 child_x, child_y;
 
@@ -415,21 +521,58 @@ shopno_menu_window_show_app_menu (ShopnoMenuWindow *self,
 
   id = garcon_menu_item_get_desktop_id (item);
   pinned = shopno_menu_settings_get_pinned (self->settings);
-
   menu = g_menu_new ();
+
+  /* Actions from the desktop file, such as "New Private Window" */
+  info = shopno_app_get_info (item);
+  if (info != NULL)
+    {
+      const gchar * const *actions = g_desktop_app_info_list_actions (info);
+
+      section = g_menu_new ();
+      for (guint i = 0; actions != NULL && actions[i] != NULL; i++)
+        {
+          gchar     *label = g_desktop_app_info_get_action_name (info, actions[i]);
+          GMenuItem *menu_item = g_menu_item_new (label, NULL);
+
+          g_menu_item_set_action_and_target_value (menu_item, "app.launch-action",
+                                                   g_variant_new ("(ss)", id, actions[i]));
+          g_menu_append_item (section, menu_item);
+          g_object_unref (menu_item);
+          g_free (label);
+        }
+      g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
+      g_object_unref (section);
+      g_object_unref (info);
+    }
+
+  section = g_menu_new ();
   if (shopno_menu_settings_is_pinned (self->settings, id))
     {
-      shopno_menu_window_menu_append (menu, _("Unpin from Start"), "app.unpin", id);
+      shopno_menu_window_menu_append (section, _("Unpin from Start"), "app.unpin", id);
       if (g_strcmp0 (pinned[0], id) != 0)
-        shopno_menu_window_menu_append (menu, _("Move to front"), "app.move-to-front", id);
+        shopno_menu_window_menu_append (section, _("Move to front"), "app.move-to-front", id);
     }
   else
     {
-      shopno_menu_window_menu_append (menu, _("Pin to Start"), "app.pin", id);
+      shopno_menu_window_menu_append (section, _("Pin to Start"), "app.pin", id);
     }
 
   if (is_recent)
-    shopno_menu_window_menu_append (menu, _("Remove from list"), "app.remove-recent", id);
+    shopno_menu_window_menu_append (section, _("Remove from list"), "app.remove-recent", id);
+  g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
+  g_object_unref (section);
+
+  /* Each is hidden when its tool is not installed */
+  section = g_menu_new ();
+  if (shopno_app_can_add_to_desktop ())
+    shopno_menu_window_menu_append (section, _("Add to Desktop"), "app.add-to-desktop", id);
+  if (shopno_app_can_add_to_panel ())
+    shopno_menu_window_menu_append (section, _("Add to Panel"), "app.add-to-panel", id);
+  if (shopno_app_can_edit ())
+    shopno_menu_window_menu_append (section, _("Edit Application"), "app.edit", id);
+  g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
+  g_object_unref (section);
 
   if (self->app_menu != NULL)
     gtk_widget_destroy (self->app_menu);

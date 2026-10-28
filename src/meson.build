@@ -19,6 +19,7 @@ shopno_menu_deps = [
 shopno_menu_core = static_library(
   'shopno-menu-core',
   sources: [
+    'shopno-app-actions.c',
     'shopno-app-model.c',
     'shopno-app-tile.c',
     'shopno-menu-settings.c',

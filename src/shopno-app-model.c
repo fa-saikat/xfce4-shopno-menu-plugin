@@ -468,18 +468,19 @@ shopno_app_model_search (ShopnoAppModel *model,
 
 
 
-gboolean
-shopno_app_launch (GarconMenuItem  *item,
-                   GdkScreen       *screen,
-                   GError         **error)
+/**
+ * shopno_app_get_info:
+ *
+ * Returns: (transfer full) (nullable): the desktop file of @item.
+ **/
+GDesktopAppInfo *
+shopno_app_get_info (GarconMenuItem *item)
 {
-  GDesktopAppInfo     *info = NULL;
-  GdkAppLaunchContext *context;
-  gchar               *uri;
-  gchar               *path;
-  gboolean             result;
+  GDesktopAppInfo *info = NULL;
+  gchar           *uri;
+  gchar           *path;
 
-  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), FALSE);
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), NULL);
 
   uri = garcon_menu_item_get_uri (item);
   path = uri != NULL ? g_filename_from_uri (uri, NULL, NULL) : NULL;
@@ -488,21 +489,88 @@ shopno_app_launch (GarconMenuItem  *item,
   g_free (uri);
   g_free (path);
 
-  if (info == NULL)
-    {
-      g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
-                   _("The application \"%s\" could not be found"),
-                   garcon_menu_item_get_name (item));
-      return FALSE;
-    }
+  return info;
+}
+
+
+
+static GAppLaunchContext *
+shopno_app_launch_context_new (GdkScreen *screen)
+{
+  GdkAppLaunchContext *context;
 
   context = gdk_display_get_app_launch_context (gdk_screen_get_display (screen));
   gdk_app_launch_context_set_timestamp (context, gtk_get_current_event_time ());
 
-  result = g_app_info_launch (G_APP_INFO (info), NULL, G_APP_LAUNCH_CONTEXT (context), error);
+  return G_APP_LAUNCH_CONTEXT (context);
+}
+
+
+
+static GDesktopAppInfo *
+shopno_app_get_info_or_error (GarconMenuItem  *item,
+                              GError         **error)
+{
+  GDesktopAppInfo *info = shopno_app_get_info (item);
+
+  if (info == NULL)
+    g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
+                 _("The application \"%s\" could not be found"),
+                 garcon_menu_item_get_name (item));
+
+  return info;
+}
+
+
+
+gboolean
+shopno_app_launch (GarconMenuItem  *item,
+                   GdkScreen       *screen,
+                   GError         **error)
+{
+  GDesktopAppInfo   *info;
+  GAppLaunchContext *context;
+  gboolean           result;
+
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), FALSE);
+
+  info = shopno_app_get_info_or_error (item, error);
+  if (info == NULL)
+    return FALSE;
+
+  context = shopno_app_launch_context_new (screen);
+  result = g_app_info_launch (G_APP_INFO (info), NULL, context, error);
 
   g_object_unref (context);
   g_object_unref (info);
 
   return result;
+}
+
+
+
+/* Launches one of the actions in the desktop file, such as "New Window" */
+gboolean
+shopno_app_launch_action (GarconMenuItem  *item,
+                          const gchar     *action,
+                          GdkScreen       *screen,
+                          GError         **error)
+{
+  GDesktopAppInfo   *info;
+  GAppLaunchContext *context;
+
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), FALSE);
+  g_return_val_if_fail (action != NULL, FALSE);
+
+  info = shopno_app_get_info_or_error (item, error);
+  if (info == NULL)
+    return FALSE;
+
+  context = shopno_app_launch_context_new (screen);
+  g_desktop_app_info_launch_action (info, action, context);
+
+  g_object_unref (context);
+  g_object_unref (info);
+
+  return TRUE;
 }
