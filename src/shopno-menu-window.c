@@ -90,6 +90,8 @@ struct _ShopnoMenuWindow
   GtkWidget          *category_apps;
 
   GtkWidget          *app_menu;
+  GtkWidget          *app_menu_target;
+  gulong              app_menu_target_id;
 
   gboolean            grab_input;
   GdkSeat            *grab_seat;
@@ -487,17 +489,63 @@ static const GActionEntry app_actions[] =
 
 
 
+/* The app menu is built from buttons rather than a GMenu: GTK 3 keeps
+ * part of every menu model bound to a popover, so rebuilding one per
+ * right-click grew the panel's memory */
 static void
-shopno_menu_window_menu_append (GMenu       *menu,
+shopno_menu_window_menu_append (GtkWidget   *section,
                                 const gchar *label,
                                 const gchar *action,
-                                const gchar *desktop_id)
+                                GVariant    *target)
 {
-  GMenuItem *menu_item = g_menu_item_new (label, NULL);
+  GtkWidget *button = g_object_new (GTK_TYPE_MODEL_BUTTON, "text", label, "visible", TRUE, NULL);
 
-  g_menu_item_set_action_and_target_value (menu_item, action, g_variant_new_string (desktop_id));
-  g_menu_append_item (menu, menu_item);
-  g_object_unref (menu_item);
+  gtk_actionable_set_action_name (GTK_ACTIONABLE (button), action);
+  gtk_actionable_set_action_target_value (GTK_ACTIONABLE (button), target);
+  gtk_container_add (GTK_CONTAINER (section), button);
+}
+
+
+
+/* Adds @section to @box after a separator, or drops it when it is empty */
+static void
+shopno_menu_window_menu_append_section (GtkWidget *box,
+                                        GtkWidget *section)
+{
+  GList *children = gtk_container_get_children (GTK_CONTAINER (section));
+  GList *existing = gtk_container_get_children (GTK_CONTAINER (box));
+
+  if (children == NULL)
+    {
+      gtk_widget_destroy (section);
+    }
+  else
+    {
+      if (existing != NULL)
+        gtk_container_add (GTK_CONTAINER (box), gtk_separator_new (GTK_ORIENTATION_HORIZONTAL));
+      gtk_container_add (GTK_CONTAINER (box), section);
+    }
+
+  g_list_free (children);
+  g_list_free (existing);
+}
+
+
+
+static void
+shopno_menu_window_close_app_menu (ShopnoMenuWindow *self)
+{
+  if (self->app_menu_target != NULL)
+    {
+      g_signal_handler_disconnect (self->app_menu_target, self->app_menu_target_id);
+      self->app_menu_target = NULL;
+    }
+
+  if (self->app_menu != NULL)
+    {
+      gtk_widget_hide (self->app_menu);
+      gtk_popover_set_relative_to (GTK_POPOVER (self->app_menu), NULL);
+    }
 }
 
 
@@ -516,8 +564,8 @@ shopno_menu_window_show_app_menu (ShopnoMenuWindow *self,
   GarconMenuItem      *item = shopno_app_tile_get_item (gtk_bin_get_child (GTK_BIN (child)));
   const gchar         *id;
   const gchar * const *pinned;
-  GMenu               *menu;
-  GMenu               *section;
+  GtkWidget           *box;
+  GtkWidget           *section;
   GDesktopAppInfo     *info;
   GdkRectangle         rect;
   gint                 child_x, child_y;
@@ -527,7 +575,8 @@ shopno_menu_window_show_app_menu (ShopnoMenuWindow *self,
 
   id = garcon_menu_item_get_desktop_id (item);
   pinned = shopno_menu_settings_get_pinned (self->settings);
-  menu = g_menu_new ();
+  box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (box), 10);
 
   /* Actions from the desktop file, such as "New Private Window" */
   info = shopno_app_get_info (item);
@@ -535,56 +584,65 @@ shopno_menu_window_show_app_menu (ShopnoMenuWindow *self,
     {
       const gchar * const *actions = g_desktop_app_info_list_actions (info);
 
-      section = g_menu_new ();
+      section = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
       for (guint i = 0; actions != NULL && actions[i] != NULL; i++)
         {
-          gchar     *label = g_desktop_app_info_get_action_name (info, actions[i]);
-          GMenuItem *menu_item = g_menu_item_new (label, NULL);
+          gchar *label = g_desktop_app_info_get_action_name (info, actions[i]);
 
-          g_menu_item_set_action_and_target_value (menu_item, "app.launch-action",
-                                                   g_variant_new ("(ss)", id, actions[i]));
-          g_menu_append_item (section, menu_item);
-          g_object_unref (menu_item);
+          shopno_menu_window_menu_append (section, label, "app.launch-action",
+                                          g_variant_new ("(ss)", id, actions[i]));
           g_free (label);
         }
-      g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
-      g_object_unref (section);
+      shopno_menu_window_menu_append_section (box, section);
       g_object_unref (info);
     }
 
-  section = g_menu_new ();
+  section = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
   if (shopno_menu_settings_is_pinned (self->settings, id))
     {
-      shopno_menu_window_menu_append (section, _("Unpin from Start"), "app.unpin", id);
+      shopno_menu_window_menu_append (section, _("Unpin from Start"), "app.unpin", g_variant_new_string (id));
       if (g_strcmp0 (pinned[0], id) != 0)
-        shopno_menu_window_menu_append (section, _("Move to front"), "app.move-to-front", id);
+        shopno_menu_window_menu_append (section, _("Move to front"), "app.move-to-front", g_variant_new_string (id));
     }
   else
     {
-      shopno_menu_window_menu_append (section, _("Pin to Start"), "app.pin", id);
+      shopno_menu_window_menu_append (section, _("Pin to Start"), "app.pin", g_variant_new_string (id));
     }
 
   if (is_recent)
-    shopno_menu_window_menu_append (section, _("Remove from list"), "app.remove-recent", id);
-  g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
-  g_object_unref (section);
+    shopno_menu_window_menu_append (section, _("Remove from list"), "app.remove-recent", g_variant_new_string (id));
+  shopno_menu_window_menu_append_section (box, section);
 
   /* Each is hidden when its tool is not installed */
-  section = g_menu_new ();
+  section = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
   if (shopno_app_can_add_to_desktop ())
-    shopno_menu_window_menu_append (section, _("Add to Desktop"), "app.add-to-desktop", id);
+    shopno_menu_window_menu_append (section, _("Add to Desktop"), "app.add-to-desktop", g_variant_new_string (id));
   if (shopno_app_can_add_to_panel ())
-    shopno_menu_window_menu_append (section, _("Add to Panel"), "app.add-to-panel", id);
+    shopno_menu_window_menu_append (section, _("Add to Panel"), "app.add-to-panel", g_variant_new_string (id));
   if (shopno_app_can_edit ())
-    shopno_menu_window_menu_append (section, _("Edit Application"), "app.edit", id);
-  g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
-  g_object_unref (section);
+    shopno_menu_window_menu_append (section, _("Edit Application"), "app.edit", g_variant_new_string (id));
+  shopno_menu_window_menu_append_section (box, section);
+  gtk_widget_show_all (box);
 
-  if (self->app_menu != NULL)
-    gtk_widget_destroy (self->app_menu);
+  shopno_menu_window_close_app_menu (self);
 
-  self->app_menu = gtk_popover_new_from_model (child, G_MENU_MODEL (menu));
-  g_object_add_weak_pointer (G_OBJECT (self->app_menu), (gpointer *) &self->app_menu);
+  /* One popover for every app: GTK 3 does not release all of a destroyed
+   * popover's memory, so a new one per right-click grows the panel */
+  if (self->app_menu == NULL)
+    {
+      self->app_menu = g_object_ref_sink (gtk_popover_new (NULL));
+      gtk_style_context_add_class (gtk_widget_get_style_context (self->app_menu), GTK_STYLE_CLASS_MENU);
+    }
+
+  if (gtk_bin_get_child (GTK_BIN (self->app_menu)) != NULL)
+    gtk_widget_destroy (gtk_bin_get_child (GTK_BIN (self->app_menu)));
+  gtk_container_add (GTK_CONTAINER (self->app_menu), box);
+  gtk_popover_set_relative_to (GTK_POPOVER (self->app_menu), child);
+
+  /* Tiles are rebuilt while the menu is open, for example by a pin change */
+  self->app_menu_target = child;
+  self->app_menu_target_id = g_signal_connect_swapped (child, "destroy",
+                                                       G_CALLBACK (shopno_menu_window_close_app_menu), self);
 
   /* List rows span the whole menu, so pointing at the item would open the
    * menu in the middle of the row, far from the pointer */
@@ -595,12 +653,18 @@ shopno_menu_window_show_app_menu (ShopnoMenuWindow *self,
       rect.y = child_y;
       rect.width = 1;
       rect.height = 1;
-      gtk_popover_set_pointing_to (GTK_POPOVER (self->app_menu), &rect);
     }
+  else
+    {
+      /* Set every time, the popover is reused */
+      rect.x = 0;
+      rect.y = 0;
+      rect.width = gtk_widget_get_allocated_width (child);
+      rect.height = gtk_widget_get_allocated_height (child);
+    }
+  gtk_popover_set_pointing_to (GTK_POPOVER (self->app_menu), &rect);
 
   gtk_popover_popup (GTK_POPOVER (self->app_menu));
-
-  g_object_unref (menu);
 }
 
 
@@ -957,8 +1021,7 @@ shopno_menu_window_rebuild_home (ShopnoMenuWindow *self)
       self->rebuild_id = 0;
     }
 
-  if (self->app_menu != NULL)
-    gtk_widget_destroy (self->app_menu);
+  shopno_menu_window_close_app_menu (self);
 
   n = shopno_menu_window_fill_grid (self, self->pinned_grid,
                                     shopno_menu_settings_get_pinned (self->settings), 0);
@@ -1502,9 +1565,7 @@ shopno_menu_window_hide (GtkWidget *widget)
   GtkAdjustment    *adjustment;
 
   shopno_menu_window_ungrab (self);
-
-  if (self->app_menu != NULL)
-    gtk_widget_destroy (self->app_menu);
+  shopno_menu_window_close_app_menu (self);
 
   GTK_WIDGET_CLASS (shopno_menu_window_parent_class)->hide (widget);
 
@@ -1675,6 +1736,13 @@ shopno_menu_window_dispose (GObject *object)
   ShopnoMenuWindow *self = SHOPNO_MENU_WINDOW (object);
 
   shopno_menu_window_ungrab (self);
+
+  shopno_menu_window_close_app_menu (self);
+  if (self->app_menu != NULL)
+    {
+      gtk_widget_destroy (self->app_menu);
+      g_clear_object (&self->app_menu);
+    }
 
   if (self->rebuild_id != 0)
     {
