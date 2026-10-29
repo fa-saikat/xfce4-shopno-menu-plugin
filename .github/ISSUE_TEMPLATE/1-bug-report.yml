@@ -49,7 +49,7 @@ body:
     attributes:
       label: Shopno Menu version
       description: Shown in the plugin's About dialog (right-click the menu button, then About), or the commit you built.
-      placeholder: 0.1.0
+      placeholder: 0.2.0
     validations:
       required: true
 
