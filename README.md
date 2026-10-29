@@ -1,12 +1,5 @@
 <p align="center">
-  <img src="data/icons/shopno-menu.svg" alt="" width="112">
-</p>
-
-<h1 align="center">Shopno Menu</h1>
-
-<p align="center">
-  A Windows 11 style Start menu for the Xfce panel.<br>
-  No ads, no "Recommended" section. Native C, light on memory.
+  <img src="docs/screenshots/banner.png" alt="Shopno Menu: a Windows 11 style Start menu for the Xfce panel, showing pinned apps, recently used apps and All apps by category">
 </p>
 
 <p align="center">
@@ -23,10 +16,6 @@
   <a href="#building">Build</a> ·
   <a href="#about-the-code">About the code</a> ·
   <a href="#credits">Credits</a>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/home.png" alt="Shopno Menu open on the Xfce panel, showing pinned apps, recently used apps and All apps by category" width="560">
 </p>
 
 > [!NOTE]
