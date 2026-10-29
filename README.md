@@ -33,7 +33,8 @@ on any distribution that ships Xfce 4.18 or newer.
 Session actions use the standard Xfce tools (`xflock4`,
 `xfce4-session-logout`, `xfce4-settings-manager`). An action whose tool is not
 installed is hidden. Switch user needs `dm-tool` (LightDM), and account
-settings need `mugshot` or `users-admin`.
+settings need `users-admin` (from `gnome-system-tools`), or `mugshot` if that
+isn't available.
 
 ## Installing
 

@@ -35,7 +35,7 @@ typedef struct
 static const ActionInfo actions[SHOPNO_SESSION_N_ACTIONS] =
 {
   [SHOPNO_SESSION_ACCOUNT] =
-    { "account", N_("Change account settings"), { "mugshot", "users-admin", NULL } },
+    { "account", N_("Change account settings"), { "users-admin", "mugshot", NULL } },
   [SHOPNO_SESSION_SETTINGS] =
     { "settings", N_("Settings"), { "xfce4-settings-manager", NULL } },
   [SHOPNO_SESSION_LOCK] =
