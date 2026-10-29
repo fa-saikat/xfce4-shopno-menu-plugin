@@ -426,7 +426,7 @@ shopno_menu_plugin_configure_plugin (XfcePanelPlugin *plugin)
 static void
 shopno_menu_plugin_about (XfcePanelPlugin *plugin)
 {
-  const gchar *authors[] = { "FA Saikat", NULL };
+  const gchar *authors[] = { "FA Saikat <fahimabrar.saikat@gmail.com>", NULL };
 
   gtk_show_about_dialog (NULL,
                          "program-name", _("Shopno Menu"),
