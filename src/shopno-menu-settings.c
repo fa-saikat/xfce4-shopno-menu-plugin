@@ -16,18 +16,6 @@
 
 #include "shopno-menu-settings.h"
 
-/* Pinned on first run; ids that are not installed are skipped */
-static const gchar *default_pinned[] =
-{
-  "xfce4-web-browser.desktop",
-  "xfce4-file-manager.desktop",
-  "xfce4-terminal-emulator.desktop",
-  "xfce4-mail-reader.desktop",
-  "org.xfce.mousepad.desktop",
-  "xfce-settings-manager.desktop",
-  NULL
-};
-
 enum
 {
   PROP_0,
@@ -302,7 +290,8 @@ shopno_menu_settings_class_init (ShopnoMenuSettingsClass *klass)
 static void
 shopno_menu_settings_init (ShopnoMenuSettings *self)
 {
-  self->pinned = g_strdupv ((gchar **) default_pinned);
+  /* Filled from shopno_default_apps_get_pins() on first run */
+  self->pinned = g_new0 (gchar *, 1);
   self->recent = g_new0 (gchar *, 1);
   self->show_recent = TRUE;
   self->enable_blur = FALSE;
