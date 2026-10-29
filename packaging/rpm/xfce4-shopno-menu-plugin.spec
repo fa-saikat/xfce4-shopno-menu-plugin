@@ -50,6 +50,7 @@ picom. It follows the GTK and icon theme.
 %{_bindir}/xfce4-popup-shopno-menu
 %{_libdir}/xfce4/panel/plugins/libshopno-menu.so
 %{_datadir}/xfce4/panel/plugins/shopno-menu.desktop
+%{_datadir}/icons/hicolor/scalable/apps/shopno-menu.svg
 
 %changelog
 * Wed Oct 28 2026 FA Saikat <fahimabrar.saikat@gmail.com> - 0.1.0-1

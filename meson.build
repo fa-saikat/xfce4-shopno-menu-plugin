@@ -51,3 +51,5 @@ subdir('src')
 if get_option('preview')
   subdir('tools')
 endif
+
+gnome.post_install(gtk_update_icon_cache: true)

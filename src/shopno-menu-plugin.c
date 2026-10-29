@@ -411,7 +411,7 @@ shopno_menu_plugin_about (XfcePanelPlugin *plugin)
                          "website", "https://github.com/fa-saikat/xfce4-shopno-menu-plugin",
                          "license-type", GTK_LICENSE_GPL_2_0,
                          "authors", authors,
-                         "logo-icon-name", SHOPNO_MENU_DEFAULT_ICON,
+                         "logo-icon-name", "shopno-menu",
                          NULL);
 }
 
