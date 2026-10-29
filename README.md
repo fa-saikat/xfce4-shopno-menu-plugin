@@ -24,6 +24,8 @@ on any distribution that ships Xfce 4.18 or newer.
   settings pages in Windows 11 (can be turned off).
 - User avatar and name, with account settings, lock, switch user, and sign out.
 - Power button with sleep, shut down, and restart.
+- Screenshot button: capture the entire screen or a region straight to the
+  clipboard, without saving a file.
 - Follows your GTK theme (light or dark) and icon theme.
 - Optional background blur with [picom](https://github.com/yshui/picom).
 - Opens with the Super key.
@@ -32,9 +34,9 @@ on any distribution that ships Xfce 4.18 or newer.
 
 Session actions use the standard Xfce tools (`xflock4`,
 `xfce4-session-logout`, `xfce4-settings-manager`). An action whose tool is not
-installed is hidden. Switch user needs `dm-tool` (LightDM), and account
+installed is hidden. Switch user needs `dm-tool` (LightDM), account
 settings need `users-admin` (from `gnome-system-tools`), or `mugshot` if that
-isn't available.
+isn't available, and the screenshot button needs `xfce4-screenshooter`.
 
 ## Installing
 

@@ -34,6 +34,7 @@ Suggests:
  gnome-system-tools,
  mugshot,
  picom,
+ xfce4-screenshooter,
 Description: Windows 11 style Start menu for the Xfce panel
  Shopno Menu is an application menu plugin for the Xfce panel, modelled on
  the Windows 11 Start menu, without ads or a Recommended section.

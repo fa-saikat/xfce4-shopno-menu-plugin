@@ -50,6 +50,11 @@ static const ActionInfo actions[SHOPNO_SESSION_N_ACTIONS] =
     { "restart", N_("Restart"), { "xfce4-session-logout --reboot --fast", NULL } },
   [SHOPNO_SESSION_SHUT_DOWN] =
     { "shut-down", N_("Shut down"), { "xfce4-session-logout --halt --fast", NULL } },
+  /* Copied to the clipboard, not saved */
+  [SHOPNO_SESSION_SCREENSHOT_SCREEN] =
+    { "screenshot-screen", N_("Entire screen"), { "xfce4-screenshooter --fullscreen --clipboard", NULL } },
+  [SHOPNO_SESSION_SCREENSHOT_REGION] =
+    { "screenshot-region", N_("Select a region"), { "xfce4-screenshooter --region --clipboard", NULL } },
 };
 
 
