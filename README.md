@@ -15,6 +15,8 @@ on any distribution that ships Xfce 4.18 or newer.
 - Search apps as you type, by name, keywords, or description. Enter opens the
   best match.
 - Pinned apps grid. Right-click any app to pin, unpin, or move it to the front.
+  On first run it holds your own file manager, web browser and terminal, as
+  set in Xfce's Default Applications.
 - Right-click menu with the app's own actions (such as New Private Window),
   Add to Desktop, Add to Panel, and Edit Application.
 - Recently used apps row (can be turned off).

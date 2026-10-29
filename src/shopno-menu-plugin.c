@@ -19,6 +19,7 @@
 #include <libxfce4util/libxfce4util.h>
 #include <xfconf/xfconf.h>
 
+#include "shopno-default-apps.h"
 #include "shopno-menu-dialog.h"
 #include "shopno-menu-settings.h"
 #include "shopno-menu-window.h"
@@ -93,6 +94,28 @@ shopno_menu_plugin_load_list (ShopnoMenuPlugin *self,
 
 
 
+/* On first run, pin the user's file manager, browser and terminal. Saved
+ * right away, so the lookup never runs again. */
+static void
+shopno_menu_plugin_pin_defaults (ShopnoMenuPlugin *self)
+{
+  gchar  *path = shopno_menu_plugin_property_path (self, "pinned");
+  gchar **pins;
+
+  if (!xfconf_channel_has_property (self->channel, path))
+    {
+      pins = shopno_default_apps_get_pins ();
+      shopno_menu_settings_set_pinned (self->settings, (const gchar * const *) pins);
+      if (pins[0] == NULL)
+        xfconf_channel_set_string (self->channel, path, "");
+      g_strfreev (pins);
+    }
+
+  g_free (path);
+}
+
+
+
 static void
 shopno_menu_plugin_save_list (ShopnoMenuSettings *settings,
                               GParamSpec         *pspec,
@@ -147,6 +170,7 @@ shopno_menu_plugin_load_settings (ShopnoMenuPlugin *self)
                     G_CALLBACK (shopno_menu_plugin_save_list), self);
   g_signal_connect (self->settings, "notify::recent",
                     G_CALLBACK (shopno_menu_plugin_save_list), self);
+  shopno_menu_plugin_pin_defaults (self);
 
   shopno_menu_plugin_bind (self, "show-recent", G_TYPE_BOOLEAN);
   shopno_menu_plugin_bind (self, "enable-blur", G_TYPE_BOOLEAN);

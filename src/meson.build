@@ -22,6 +22,7 @@ shopno_menu_core = static_library(
     'shopno-app-actions.c',
     'shopno-app-model.c',
     'shopno-app-tile.c',
+    'shopno-default-apps.c',
     'shopno-menu-settings.c',
     'shopno-menu-window.c',
     'shopno-session.c',

@@ -22,6 +22,7 @@
 
 #include <gtk/gtk.h>
 
+#include "shopno-default-apps.h"
 #include "shopno-menu-window.h"
 
 static gboolean opt_blur = FALSE;
@@ -60,8 +61,9 @@ main (int    argc,
                 "enable-blur", opt_blur,
                 "show-recent", !opt_no_recent,
                 NULL);
-  if (opt_pinned != NULL)
-    shopno_menu_settings_set_pinned (settings, (const gchar * const *) opt_pinned);
+  if (opt_pinned == NULL)
+    opt_pinned = shopno_default_apps_get_pins ();
+  shopno_menu_settings_set_pinned (settings, (const gchar * const *) opt_pinned);
 
   window = shopno_menu_window_new (settings);
   shopno_menu_window_set_grab_input (SHOPNO_MENU_WINDOW (window), !opt_no_grab);
