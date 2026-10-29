@@ -158,7 +158,7 @@ shopno_session_notify_copied (void)
 
   g_dbus_connection_call (bus, NOTIFY_SERVICE, NOTIFY_PATH, NOTIFY_SERVICE, "Notify",
                           g_variant_new ("(susssasa{sv}i)", _("Shopno Menu"), 0, "accessories-screenshot",
-                                         _("Screenshot copied"), _("Paste it with Ctrl+V."),
+                                         _("Screenshot copied to clipboard"), "",
                                          NULL, NULL, -1),
                           NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL, NULL);
   g_object_unref (bus);
