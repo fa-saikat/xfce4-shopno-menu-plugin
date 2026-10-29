@@ -12,7 +12,8 @@ makedepends=('gettext' 'meson')
 optdepends=('exo: Edit Application in the right-click menu'
             'gnome-system-tools: account settings from the user menu'
             'mugshot: account settings from the user menu, if gnome-system-tools is missing'
-            'picom: background blur')
+            'picom: background blur'
+            'xfce4-screenshooter: screenshot button')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
 # Built in CI from the checked-out tree; run updpkgsums before building
 # from the release tarball

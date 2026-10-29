@@ -29,6 +29,8 @@ typedef enum
   SHOPNO_SESSION_SUSPEND,
   SHOPNO_SESSION_RESTART,
   SHOPNO_SESSION_SHUT_DOWN,
+  SHOPNO_SESSION_SCREENSHOT_SCREEN,
+  SHOPNO_SESSION_SCREENSHOT_REGION,
   SHOPNO_SESSION_N_ACTIONS
 } ShopnoSessionAction;
 
@@ -36,6 +38,8 @@ const gchar *shopno_session_action_get_name    (ShopnoSessionAction action);
 const gchar *shopno_session_action_get_label   (ShopnoSessionAction action);
 gboolean     shopno_session_action_available   (ShopnoSessionAction action);
 void         shopno_session_action_run         (ShopnoSessionAction action,
+                                                GdkScreen          *screen);
+void         shopno_session_take_screenshot    (ShopnoSessionAction action,
                                                 GdkScreen          *screen);
 
 gchar       *shopno_session_get_display_name   (void);

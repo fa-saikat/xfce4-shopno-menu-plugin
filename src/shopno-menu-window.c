@@ -41,6 +41,9 @@
 #define GRAB_RETRY_INTERVAL 50
 #define GRAB_MAX_RETRIES    10
 
+/* Time for the compositor to remove the menu before a screenshot */
+#define SCREENSHOT_DELAY 250
+
 #define CATEGORY_KEY "shopno-category"
 #define RECENT_KEY   "shopno-recent"
 #define HOVER_KEY    "shopno-hover"
@@ -92,6 +95,9 @@ struct _ShopnoMenuWindow
   GdkSeat            *grab_seat;
   guint               grab_retry_id;
   guint               grab_retries;
+
+  guint               screenshot_id;
+  ShopnoSessionAction screenshot_action;
 };
 
 static GParamSpec *properties[N_PROPERTIES];
@@ -1290,6 +1296,19 @@ shopno_menu_window_avatar_new (void)
 
 
 
+static gboolean
+shopno_menu_window_screenshot_timeout (gpointer data)
+{
+  ShopnoMenuWindow *self = SHOPNO_MENU_WINDOW (data);
+
+  self->screenshot_id = 0;
+  shopno_session_take_screenshot (self->screenshot_action, gtk_widget_get_screen (GTK_WIDGET (self)));
+
+  return G_SOURCE_REMOVE;
+}
+
+
+
 static void
 shopno_menu_window_session_activate (GSimpleAction *action,
                                      GVariant      *parameter,
@@ -1302,6 +1321,18 @@ shopno_menu_window_session_activate (GSimpleAction *action,
 
   /* Hide first: the screen locker cannot grab input while the menu does */
   gtk_widget_hide (GTK_WIDGET (self));
+
+  if (session_action == SHOPNO_SESSION_SCREENSHOT_SCREEN
+      || session_action == SHOPNO_SESSION_SCREENSHOT_REGION)
+    {
+      if (self->screenshot_id != 0)
+        g_source_remove (self->screenshot_id);
+
+      self->screenshot_action = session_action;
+      self->screenshot_id = g_timeout_add (SCREENSHOT_DELAY, shopno_menu_window_screenshot_timeout, self);
+      return;
+    }
+
   shopno_session_action_run (session_action, gtk_widget_get_screen (GTK_WIDGET (self)));
 }
 
@@ -1417,6 +1448,20 @@ shopno_menu_window_footer_new (ShopnoMenuWindow *self)
       gtk_actionable_set_action_name (GTK_ACTIONABLE (button), "session.settings");
       gtk_box_pack_end (GTK_BOX (footer), button, FALSE, FALSE, 0);
     }
+
+  /* Screenshot button, left of Settings; the shot goes to the clipboard */
+  menu = g_menu_new ();
+  shopno_menu_window_session_append (menu, SHOPNO_SESSION_SCREENSHOT_SCREEN);
+  shopno_menu_window_session_append (menu, SHOPNO_SESSION_SCREENSHOT_REGION);
+  if (g_menu_model_get_n_items (G_MENU_MODEL (menu)) > 0)
+    {
+      button = shopno_menu_window_footer_button_new (gtk_menu_button_new (), "camera-photo-symbolic",
+                                                     _("Screenshot to clipboard"));
+      gtk_menu_button_set_direction (GTK_MENU_BUTTON (button), GTK_ARROW_UP);
+      gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (button), G_MENU_MODEL (menu));
+      gtk_box_pack_end (GTK_BOX (footer), button, FALSE, FALSE, 0);
+    }
+  g_object_unref (menu);
 
   return footer;
 }
@@ -1635,6 +1680,12 @@ shopno_menu_window_dispose (GObject *object)
     {
       g_source_remove (self->rebuild_id);
       self->rebuild_id = 0;
+    }
+
+  if (self->screenshot_id != 0)
+    {
+      g_source_remove (self->screenshot_id);
+      self->screenshot_id = 0;
     }
 
   if (self->settings != NULL)

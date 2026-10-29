@@ -22,6 +22,7 @@ BuildRequires:  pkgconfig(libxfconf-0)
 Requires:       xfce4-panel
 Recommends:     exo
 Suggests:       picom
+Suggests:       xfce4-screenshooter
 
 %description
 Shopno Menu is an application menu plugin for the Xfce panel, modelled on
