@@ -143,16 +143,7 @@ typedef struct
 {
   GtkClipboard *clipboard;
   gulong        owner_change_id;
-  gboolean      copied;
 } Screenshot;
-
-
-
-static void
-shopno_session_screenshot_owner_change (Screenshot *shot)
-{
-  shot->copied = TRUE;
-}
 
 
 
@@ -166,11 +157,37 @@ shopno_session_notify_copied (void)
     return;
 
   g_dbus_connection_call (bus, NOTIFY_SERVICE, NOTIFY_PATH, NOTIFY_SERVICE, "Notify",
-                          g_variant_new ("(susssasa{sv}i)", _("Shopno Menu"), 0, "camera-photo",
+                          g_variant_new ("(susssasa{sv}i)", _("Shopno Menu"), 0, "accessories-screenshot",
                                          _("Screenshot copied"), _("Paste it with Ctrl+V."),
                                          NULL, NULL, -1),
                           NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL, NULL);
   g_object_unref (bus);
+}
+
+
+
+static void
+shopno_session_screenshot_targets (GtkClipboard *clipboard,
+                                   GdkAtom      *targets,
+                                   gint          n_targets,
+                                   gpointer      data)
+{
+  if (targets != NULL && gtk_targets_include_image (targets, n_targets, FALSE))
+    shopno_session_notify_copied ();
+}
+
+
+
+/* Notify as soon as the image is on the clipboard: the screenshot tool
+ * keeps running for a while afterwards to hand it to the clipboard
+ * manager. Nothing is copied when the region selection is cancelled. */
+static void
+shopno_session_screenshot_owner_change (Screenshot *shot)
+{
+  g_signal_handler_disconnect (shot->clipboard, shot->owner_change_id);
+  shot->owner_change_id = 0;
+
+  gtk_clipboard_request_targets (shot->clipboard, shopno_session_screenshot_targets, NULL);
 }
 
 
@@ -183,11 +200,8 @@ shopno_session_screenshot_exited (GPid     pid,
   Screenshot *shot = data;
 
   g_spawn_close_pid (pid);
-  g_signal_handler_disconnect (shot->clipboard, shot->owner_change_id);
-
-  /* Nothing is copied when the region selection is cancelled */
-  if (shot->copied && g_spawn_check_wait_status (status, NULL))
-    shopno_session_notify_copied ();
+  if (shot->owner_change_id != 0)
+    g_signal_handler_disconnect (shot->clipboard, shot->owner_change_id);
 
   g_free (shot);
 }
