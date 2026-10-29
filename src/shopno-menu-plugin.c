@@ -152,6 +152,7 @@ shopno_menu_plugin_load_settings (ShopnoMenuPlugin *self)
   shopno_menu_plugin_bind (self, "enable-blur", G_TYPE_BOOLEAN);
   shopno_menu_plugin_bind (self, "button-icon", G_TYPE_STRING);
   shopno_menu_plugin_bind (self, "view-mode", G_TYPE_STRING);
+  shopno_menu_plugin_bind (self, "show-settings-dialogs", G_TYPE_BOOLEAN);
 }
 
 

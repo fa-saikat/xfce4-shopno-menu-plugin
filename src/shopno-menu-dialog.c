@@ -84,8 +84,12 @@ shopno_menu_dialog_show (XfcePanelPlugin    *plugin,
   check = shopno_menu_dialog_check_new (settings, "show-recent", _("Show _recently used apps"));
   gtk_grid_attach (GTK_GRID (grid), check, 0, 1, 2, 1);
 
-  check = shopno_menu_dialog_check_new (settings, "enable-blur", _("_Blur the background behind the menu"));
+  check = shopno_menu_dialog_check_new (settings, "show-settings-dialogs", _("Show _settings dialogs in All apps"));
+  gtk_widget_set_tooltip_text (check, _("Settings dialogs can always be found by searching"));
   gtk_grid_attach (GTK_GRID (grid), check, 0, 2, 2, 1);
+
+  check = shopno_menu_dialog_check_new (settings, "enable-blur", _("_Blur the background behind the menu"));
+  gtk_grid_attach (GTK_GRID (grid), check, 0, 3, 2, 1);
 
   markup = g_strdup_printf ("<small>%s</small>",
                             _("Blur needs the picom compositor with the Shopno Menu rules. "
@@ -97,7 +101,7 @@ shopno_menu_dialog_show (XfcePanelPlugin    *plugin,
   gtk_label_set_max_width_chars (GTK_LABEL (label), 50);
   gtk_widget_set_margin_start (label, 24);
   gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
-  gtk_grid_attach (GTK_GRID (grid), label, 0, 3, 2, 1);
+  gtk_grid_attach (GTK_GRID (grid), label, 0, 4, 2, 1);
   g_free (markup);
 
   gtk_widget_show_all (dialog);

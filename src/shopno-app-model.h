@@ -36,6 +36,9 @@ GPtrArray      *shopno_app_model_get_categories (ShopnoAppModel  *model);
 
 GPtrArray      *shopno_app_model_get_all        (ShopnoAppModel  *model);
 
+void            shopno_app_model_set_show_settings_dialogs (ShopnoAppModel *model,
+                                                            gboolean        show);
+
 GarconMenuItem *shopno_app_model_lookup         (ShopnoAppModel  *model,
                                                  const gchar     *desktop_id);
 
