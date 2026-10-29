@@ -21,6 +21,8 @@
 
 #define BINDING_FLAGS (G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE)
 
+#define BLUR_GUIDE_URL "https://github.com/fa-saikat/xfce4-shopno-menu-plugin#background-blur"
+
 
 
 static GtkWidget *
@@ -91,9 +93,9 @@ shopno_menu_dialog_show (XfcePanelPlugin    *plugin,
   check = shopno_menu_dialog_check_new (settings, "enable-blur", _("_Blur the background behind the menu"));
   gtk_grid_attach (GTK_GRID (grid), check, 0, 3, 2, 1);
 
-  markup = g_strdup_printf ("<small>%s</small>",
-                            _("Blur needs the picom compositor with the Shopno Menu rules. "
-                              "See the README for setup."));
+  markup = g_strdup_printf ("<small>%s <a href=\"%s\">%s</a></small>",
+                            _("Blur needs the picom compositor with the Shopno Menu rules."),
+                            BLUR_GUIDE_URL, _("How to set it up"));
   label = gtk_label_new (NULL);
   gtk_label_set_markup (GTK_LABEL (label), markup);
   gtk_label_set_xalign (GTK_LABEL (label), 0.0);
