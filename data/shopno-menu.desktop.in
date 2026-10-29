@@ -2,7 +2,7 @@
 Type=X-XFCE-PanelPlugin
 Name=Shopno Menu
 Comment=A Windows 11-style start menu
-Icon=start-here
+Icon=shopno-menu
 X-XFCE-Module=shopno-menu
 X-XFCE-Internal=false
 X-XFCE-Unique=false

@@ -1,3 +1,5 @@
+<img src="data/icons/shopno-menu.svg" alt="" width="96" align="right">
+
 # Shopno Menu
 
 A start menu for the Xfce panel, modeled on the Windows 11 Start menu, without
@@ -145,6 +147,10 @@ Bug reports, translations, and patches are welcome. See
 
 Shopno Menu is released under the
 [GNU General Public License v2.0 or later](COPYING).
+
+The icon in `data/icons/shopno-menu.svg` is the ShopnoOS logo, © 2026 JaduPc,
+licensed under the GNU General Public License v3.0 or later. It stands in until
+Shopno Menu has a logo of its own. ShopnoOS Linux is a trademark of JaduPc.
 
 Windows is a trademark of Microsoft Corporation. This project is not
 affiliated with or endorsed by Microsoft.

@@ -7,6 +7,12 @@ i18n.merge_file(
   install_dir: datadir / 'xfce4' / 'panel' / 'plugins',
 )
 
+# The ShopnoOS logo for now, until Shopno Menu has its own (#22)
+install_data(
+  'icons/shopno-menu.svg',
+  install_dir: datadir / 'icons' / 'hicolor' / 'scalable' / 'apps',
+)
+
 install_data(
   'xfce4-popup-shopno-menu',
   install_dir: get_option('bindir'),
