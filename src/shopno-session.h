@@ -39,6 +39,8 @@ const gchar *shopno_session_action_get_label   (ShopnoSessionAction action);
 gboolean     shopno_session_action_available   (ShopnoSessionAction action);
 void         shopno_session_action_run         (ShopnoSessionAction action,
                                                 GdkScreen          *screen);
+void         shopno_session_take_screenshot    (ShopnoSessionAction action,
+                                                GdkScreen          *screen);
 
 gchar       *shopno_session_get_display_name   (void);
 gchar       *shopno_session_get_avatar_path    (void);

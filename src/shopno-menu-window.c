@@ -1302,7 +1302,7 @@ shopno_menu_window_screenshot_timeout (gpointer data)
   ShopnoMenuWindow *self = SHOPNO_MENU_WINDOW (data);
 
   self->screenshot_id = 0;
-  shopno_session_action_run (self->screenshot_action, gtk_widget_get_screen (GTK_WIDGET (self)));
+  shopno_session_take_screenshot (self->screenshot_action, gtk_widget_get_screen (GTK_WIDGET (self)));
 
   return G_SOURCE_REMOVE;
 }

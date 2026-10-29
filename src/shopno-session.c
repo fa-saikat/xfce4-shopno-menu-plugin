@@ -22,6 +22,8 @@
 #include "shopno-session.h"
 
 #define ACCOUNTS_SERVICE "org.freedesktop.Accounts"
+#define NOTIFY_SERVICE   "org.freedesktop.Notifications"
+#define NOTIFY_PATH      "/org/freedesktop/Notifications"
 #define DBUS_TIMEOUT     500
 
 typedef struct
@@ -133,6 +135,105 @@ shopno_session_action_run (ShopnoSessionAction  action,
       xfce_dialog_show_error (NULL, error, _("Failed to run \"%s\""), command);
       g_error_free (error);
     }
+}
+
+
+
+typedef struct
+{
+  GtkClipboard *clipboard;
+  gulong        owner_change_id;
+  gboolean      copied;
+} Screenshot;
+
+
+
+static void
+shopno_session_screenshot_owner_change (Screenshot *shot)
+{
+  shot->copied = TRUE;
+}
+
+
+
+/* Sent straight over D-Bus, so there is no libnotify dependency */
+static void
+shopno_session_notify_copied (void)
+{
+  GDBusConnection *bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
+
+  if (bus == NULL)
+    return;
+
+  g_dbus_connection_call (bus, NOTIFY_SERVICE, NOTIFY_PATH, NOTIFY_SERVICE, "Notify",
+                          g_variant_new ("(susssasa{sv}i)", _("Shopno Menu"), 0, "camera-photo",
+                                         _("Screenshot copied"), _("Paste it with Ctrl+V."),
+                                         NULL, NULL, -1),
+                          NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL, NULL);
+  g_object_unref (bus);
+}
+
+
+
+static void
+shopno_session_screenshot_exited (GPid     pid,
+                                  gint     status,
+                                  gpointer data)
+{
+  Screenshot *shot = data;
+
+  g_spawn_close_pid (pid);
+  g_signal_handler_disconnect (shot->clipboard, shot->owner_change_id);
+
+  /* Nothing is copied when the region selection is cancelled */
+  if (shot->copied && g_spawn_check_wait_status (status, NULL))
+    shopno_session_notify_copied ();
+
+  g_free (shot);
+}
+
+
+
+/**
+ * shopno_session_take_screenshot:
+ *
+ * Runs a screenshot action and shows a notification once the image is on
+ * the clipboard.
+ **/
+void
+shopno_session_take_screenshot (ShopnoSessionAction  action,
+                                GdkScreen           *screen)
+{
+  const gchar  *command;
+  gchar       **argv = NULL;
+  GPid          pid;
+  Screenshot   *shot;
+  GError       *error = NULL;
+
+  g_return_if_fail (action == SHOPNO_SESSION_SCREENSHOT_SCREEN
+                    || action == SHOPNO_SESSION_SCREENSHOT_REGION);
+
+  command = shopno_session_action_get_command (action);
+  if (command == NULL)
+    return;
+
+  if (!g_shell_parse_argv (command, NULL, &argv, &error)
+      || !g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+                         NULL, NULL, &pid, &error))
+    {
+      xfce_dialog_show_error (NULL, error, _("Failed to run \"%s\""), command);
+      g_error_free (error);
+      g_strfreev (argv);
+      return;
+    }
+  g_strfreev (argv);
+
+  /* The clipboard changes owner when the screenshot tool copies the image */
+  shot = g_new0 (Screenshot, 1);
+  shot->clipboard = gtk_clipboard_get_for_display (gdk_screen_get_display (screen), GDK_SELECTION_CLIPBOARD);
+  shot->owner_change_id = g_signal_connect_swapped (shot->clipboard, "owner-change",
+                                                    G_CALLBACK (shopno_session_screenshot_owner_change), shot);
+  g_child_watch_add (pid, shopno_session_screenshot_exited, shot);
 }
 
 
