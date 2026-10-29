@@ -31,6 +31,7 @@ Recommends:
  exo-utils,
  xfce4-session,
 Suggests:
+ gnome-system-tools,
  mugshot,
  picom,
 Description: Windows 11 style Start menu for the Xfce panel
