@@ -32,6 +32,11 @@
 #define MAX_SEARCH_RESULTS 50
 #define AVATAR_SIZE        32
 
+/* Footer icons at 16 px: a 24 px lookup mixes padded fixed-size icons
+ * (often system-shutdown in status/24) with scaled-up 16 px symbolic
+ * ones, so one icon came out visibly smaller than its neighbours */
+#define FOOTER_ICON_SIZE 16
+
 /* Window roles, matched by the picom rules shipped in extras/picom */
 #define ROLE_PLAIN "shopno-menu"
 #define ROLE_BLUR  "shopno-menu-blur"
@@ -1427,8 +1432,12 @@ shopno_menu_window_footer_button_new (GtkWidget   *button,
   gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
 
   if (icon_name != NULL)
-    gtk_button_set_image (GTK_BUTTON (button),
-                          gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_LARGE_TOOLBAR));
+    {
+      GtkWidget *image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
+
+      gtk_image_set_pixel_size (GTK_IMAGE (image), FOOTER_ICON_SIZE);
+      gtk_button_set_image (GTK_BUTTON (button), image);
+    }
 
   return button;
 }
