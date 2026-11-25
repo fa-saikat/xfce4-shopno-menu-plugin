@@ -1,5 +1,5 @@
 Name:           xfce4-shopno-menu-plugin
-Version:        0.2.0
+Version:        0.2.1
 Release:        1%{?dist}
 Summary:        Windows 11 style Start menu for the Xfce panel
 
@@ -53,6 +53,9 @@ picom. It follows the GTK and icon theme.
 %{_datadir}/icons/hicolor/scalable/apps/shopno-menu.svg
 
 %changelog
+* Wed Nov 25 2026 FA Saikat <fahimabrar.saikat@gmail.com> - 0.2.1-1
+- Draw the footer icons at 16 px so the power icon matches the others
+
 * Fri Oct 30 2026 FA Saikat <fahimabrar.saikat@gmail.com> - 0.2.0-1
 - Screenshot button: capture the screen or a region to the clipboard
 - Pin the user's own file manager, browser and terminal on first run
