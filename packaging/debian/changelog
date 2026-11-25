@@ -1,3 +1,9 @@
+xfce4-shopno-menu-plugin (0.2.1-1) unstable; urgency=medium
+
+  * Draw the footer icons at 16 px so the power icon matches the others.
+
+ -- FA Saikat <fahimabrar.saikat@gmail.com>  Wed, 25 Nov 2026 12:00:00 +0600
+
 xfce4-shopno-menu-plugin (0.2.0-1) unstable; urgency=medium
 
   * Screenshot button: capture the screen or a region to the clipboard.
